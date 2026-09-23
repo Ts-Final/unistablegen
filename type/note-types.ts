@@ -99,3 +99,17 @@ export namespace INotes {
     version: number
   }
 }
+
+/* For easing:
+* | 0 | linear | 11 | outCirc | 22 | inExpo |
+| 1 | inSine | 12 | inOutCirc | 23 | outExpo |
+| 2 | outSine | 13 | inElastic | 24 | inOutExpo |
+| 3 | inOutSine | 14 | outElastic | 25 | inBack |
+| 4 | inCubic | 15 | inOutElastic | 26 | outBack |
+| 5 | outCubic | 16 | inQuad | 27 | inOutBack |
+| 6 | inOutCubic | 17 | outQuad | 28 | inBounce |
+| 7 | inQuint | 18 | inOutQuad | 29 | outBounce |
+| 8 | outQuint | 19 | inQuart | 30 | inOutBounce |
+| 9 | inOutQuint | 20 | outQuart | | |
+| 10 | inCirc | 21 | inOutQuart | | |
+* */
