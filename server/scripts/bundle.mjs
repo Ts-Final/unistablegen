@@ -11,6 +11,7 @@ import path from 'node:path'
 
 const here = import.meta.dirname
 const out_dir = path.resolve(here, '../dist-bundle')
+const pkg_json = JSON.parse(fs.readFileSync(path.resolve(here, '../package.json'), 'utf-8'))
 
 await build({
   entryPoints: [path.resolve(here, '../src/index.ts')],
@@ -21,6 +22,10 @@ await build({
   format: 'cjs',
   // ws 的这两个是可选的 native 加速件，装了才 require，没装会走 try/catch
   external: ['bufferutil', 'utf-8-validate'],
+  // 打包后读不到 server/package.json，把版本号直接写进产物（见 src/version.ts）
+  define: {
+    __UNI_SERVER_VERSION__: JSON.stringify(String(pkg_json.version ?? '0.0.0'))
+  },
   logLevel: 'info'
 })
 

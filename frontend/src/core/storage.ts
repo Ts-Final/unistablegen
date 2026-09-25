@@ -8,8 +8,8 @@ export type { ISettings, IStorageScheme }
 
 /** 版本号（对应 sv 的 Version） */
 export const Version = {
-  val: 1.0,
-  str: '0.1.0'
+  val: 2,
+  str: '0.1.1'
 }
 
 function default_settings(): ISettings {

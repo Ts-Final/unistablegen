@@ -18,6 +18,7 @@ import { load_external_tips } from '@core/misc/startup-tips.ts'
 import { Skin } from '@core/misc/skin.ts'
 import { open_chart_safe } from '@core/misc/open-chart.ts'
 import { Invoke } from '@core/ipc-handler.ts'
+import { Update } from '@core/update.ts'
 
 const state = GlobalStat.route.route
 
@@ -79,7 +80,21 @@ async function boot() {
   GlobalStat.route.change('start')
 }
 
-onMounted(boot)
+/**
+ * 启动之后悄悄检查一次更新。
+ * 有更新才弹 new-version-modal；没更新、检查失败、开发模式都不打扰用户
+ * （Update.check(true) 那三种情况都返回 null）。
+ * 不放进上面的启动流程里，免得一次网络请求把启动拖慢。
+ * */
+async function check_update_silently() {
+  const info = await Update.check(true)
+  if (info) modal.NewVersionModal.show({ info })
+}
+
+onMounted(async () => {
+  await boot()
+  void check_update_silently()
+})
 </script>
 
 <template>

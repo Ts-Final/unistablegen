@@ -16,6 +16,7 @@ import { Storage } from '@core/storage.ts'
 import { EventHub } from '@core/misc/eventhub.ts'
 import { modal } from '@core/misc/modal.ts'
 import { Invoke } from '@core/ipc-handler.ts'
+import { Update } from '@core/update.ts'
 import { Chart } from '@core/chart/chart.ts'
 
 const r = Storage._ref
@@ -25,6 +26,12 @@ function open_charts() {
 }
 function open_skin() {
   Invoke('open-skin-folder', {}).catch(() => {})
+}
+
+/** 检查更新：有更新就弹 new-version-modal，没有/失败的话 check() 自己会 notify */
+async function check_update() {
+  const info = await Update.check()
+  if (info) modal.NewVersionModal.show({ info })
 }
 
 /** 选一个浏览器可执行文件填进设置里 */
@@ -189,6 +196,7 @@ onUnmounted(() => {
       </div>
     </div>
     <template #footer>
+      <a-button2 msg="检查更新" @click="check_update()" />
       <a-button2 msg="快捷键" @click="modal.ShortcutModal.show({})" />
       <a-button2 msg="查看Version" @click="modal.VersionsModal.show({})" />
       <a-button2 msg="Credits" @click="modal.CreditsModal.show({})" />

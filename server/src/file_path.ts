@@ -49,7 +49,7 @@ function find_project_root(start: string): string {
   return start
 }
 
-const PROJECT_ROOT = find_project_root(HERE_DIR)
+export const PROJECT_ROOT = find_project_root(HERE_DIR)
 
 /**
  * 是不是「打包出来的可执行文件」在跑（而不是开发时的 node + tsx）。

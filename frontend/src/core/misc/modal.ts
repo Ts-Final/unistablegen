@@ -9,6 +9,7 @@ import VersionsModal from '@components/modals/versions-modal.vue'
 import CreditsModal from '@components/modals/credits-modal.vue'
 import IExporterModal from '@components/modals/iexporter-modal.vue'
 import ChartPreviewModal from '@components/modals/chart-preview-modal.vue'
+import NewVersionModal from '@components/modals/new-version-modal.vue'
 
 /**
  * modal 管理器 —— 用法与 sv 的 `modal.XxxModal.show({ ... })` 一致。
@@ -27,6 +28,8 @@ export class modal<T extends Component> {
   static CreditsModal = new modal(CreditsModal)
   static IExporterModal = new modal(IExporterModal)
   static ChartPreviewModal = new modal(ChartPreviewModal)
+  /** 发现新版本（检查更新之后弹，props 是 server 给的 IUpdateCheck） */
+  static NewVersionModal = new modal(NewVersionModal)
 
   component: T
   props: Record<string, unknown> | undefined

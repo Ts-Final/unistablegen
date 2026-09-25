@@ -1,4 +1,5 @@
 import type { External } from './external.js'
+import type { IUpdateCheck, IUpdateResult } from './update.js'
 
 export interface ipc {
   "write-file": {
@@ -110,6 +111,29 @@ export interface ipc {
   "open-charts-folder": {
     args: {}
     r: { status: string; path: string }
+  }
+  /**
+   * 检查更新：server 去 GitHub 拿最新 Release，和前端的版本号比对。
+   * 后端也有更新时 can_update_frontend 是 false（不允许只换 page/）。
+   * */
+  "check-update": {
+    args: {
+      /** 页面自己的版本号（Version.str），server 用它和 Release 里的前端版本比 */
+      frontend_version: string
+    }
+    r: IUpdateCheck
+  }
+  /**
+   * 用 Release 里的 page.zip 就地替换 page/ 文件夹。
+   * 下载和解压都在 server 做（浏览器不参与），换完之后 server 会通过
+   * websocket 推一条 frontend-updated 让所有开着的页面刷新。
+   * */
+  "update-frontend": {
+    args: {
+      /** 页面自己的版本号，server 用它确认「确实有前端更新」再动手 */
+      frontend_version: string
+    }
+    r: IUpdateResult
   }
 }
 

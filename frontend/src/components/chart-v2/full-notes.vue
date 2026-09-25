@@ -440,7 +440,7 @@ const tick_labels = computed(() => {
 
     <!-- 顺序和编辑器一致：hazard 垫在最下面，然后才是 hold / 各类音符 -->
     <g>
-      <template v-for="(hz) in hazard_els" :key="'hazard-' + i">
+      <template v-for="(hz, hi) in hazard_els" :key="'hazard-' + hi">
         <path :d="hz.d" :fill="hz.fill" :fill-opacity="hz.alpha" stroke="none" />
       </template>
     </g>

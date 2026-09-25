@@ -7,6 +7,8 @@ import { chart_manager } from "../chart-manager.js"
 import { ask_file, open_folder } from "../file-dialog.js"
 import { file_paths } from "../file_path.js"
 import { browser_status } from "../open-browser.js"
+import { broadcast } from "../alive.js"
+import { check_update, install_frontend_update } from "../updater.js"
 import type { External } from "../../../type/external.js"
 
 /**
@@ -232,6 +234,36 @@ router.post("/import-sprite", (req: Request, res: Response): void => {
   const p = String(req.body?.path ?? "").trim()
   if (!p) return void res.status(400).json({ state: "failed", id, reason: "missing path" })
   res.json(chart_manager.import_sprite(p, id))
+})
+
+/**
+ * 检查更新（前端的「检查更新」按钮和启动时的自动检查都走这里）。
+ * 前端把自己的版本号报上来，server 去 GitHub 拿最新 Release 比对，
+ * 顺便告诉前端「能不能只更新前端」。
+ */
+router.post("/check-update", async (req: Request, res: Response): Promise<void> => {
+  const fe = typeof req.body?.frontend_version === "string" ? req.body.frontend_version : ""
+  try {
+    res.json(await check_update(fe))
+  } catch (e) {
+    console.error("[check-update] 失败：", e)
+    res.status(500).json({ error: e instanceof Error ? e.message : String(e) })
+  }
+})
+
+/**
+ * 用最新 Release 里的 page.zip 就地更新前端页面（下载 + 解压 + 换目录全在 server 做）。
+ * 换完之后通过 websocket 通知所有开着的页面刷新。
+ * 后端也有更新时 updater 会直接拒掉：新前端可能要用到新 exe 才有的 api。
+ */
+router.post("/update-frontend", async (req: Request, res: Response): Promise<void> => {
+  const fe = typeof req.body?.frontend_version === "string" ? req.body.frontend_version : ""
+  const result = await install_frontend_update(fe)
+  if (result.ok) {
+    const sent = broadcast({ type: "frontend-updated", version: result.version })
+    console.log(`[update-frontend] 已通知 ${sent} 个页面刷新`)
+  }
+  res.json(result)
 })
 
 /* 谱面数据：/api/charts/:id/json|audio|bg */
