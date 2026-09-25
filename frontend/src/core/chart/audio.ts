@@ -1,6 +1,6 @@
-import { computed, ref, type Ref, type WritableComputedRef } from 'vue'
-import { StopClass } from '@core/misc/eventhub.ts'
-import type { Chart } from './chart'
+import {computed, ref, type Ref, type WritableComputedRef} from 'vue'
+import {StopClass} from '@core/misc/eventhub.ts'
+import type {Chart} from './chart'
 
 /**
  * 音频播放。
@@ -16,9 +16,6 @@ export class Chart_audio extends StopClass {
   length = 0
   /** 音频加载失败（比如文件夹里没放音频） */
   audio_error = ref(false)
-  private loaded: Promise<void>
-  private end_cbs: (() => void)[] = []
-
   refs: {
     current_ms: Ref<number>
     paused: Ref<boolean>
@@ -26,6 +23,8 @@ export class Chart_audio extends StopClass {
     writable_current_second: WritableComputedRef<number>
     writable_play_rate: WritableComputedRef<number>
   }
+  private loaded: Promise<void>
+  private end_cbs: (() => void)[] = []
 
   constructor(chart: Chart, url: string) {
     super()
@@ -75,16 +74,6 @@ export class Chart_audio extends StopClass {
     this.ele.addEventListener('pause', () => (paused.value = true))
   }
 
-  /** 等待音频元数据 */
-  async ready() {
-    await this.loaded
-    if (this.length <= 0) {
-      // 没有音频时用谱面最后一个物件的时间兜底
-      const last = this.chart.last_object_time()
-      this.length = last > 0 ? last + 5000 : 60000
-    }
-  }
-
   /** 当前的谱面时间(ms) */
   get current_time() {
     return this.refs.current_ms.value
@@ -101,6 +90,16 @@ export class Chart_audio extends StopClass {
 
   get play_rate() {
     return this.refs.play_rate.value
+  }
+
+  /** 等待音频元数据 */
+  async ready() {
+    await this.loaded
+    if (this.length <= 0) {
+      // 没有音频时用谱面最后一个物件的时间兜底
+      const last = this.chart.last_object_time()
+      this.length = last > 0 ? last + 5000 : 60000
+    }
   }
 
   /** 音频时间 -> 谱面时间 */

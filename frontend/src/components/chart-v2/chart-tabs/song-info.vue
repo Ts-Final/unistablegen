@@ -5,6 +5,7 @@ import { chart_api } from '@core/chart/chart-api.ts'
 import { Invoke } from '@core/ipc-handler.ts'
 import { notify } from '@core/misc/notify.ts'
 import AButton2 from '@components/a-elements/a-button2.vue'
+import AImg from '@components/a-elements/a-img.vue'
 import ANumberInput from '@components/a-elements/a-number-input.vue'
 import ATextInput from '@components/a-elements/a-text-input.vue'
 import ASelect from '@components/a-elements/a-select.vue'
@@ -14,8 +15,10 @@ const chart = Chart.$current
 const song = chart.song
 const diff = chart.diff
 
+/** 没有曲绘时用它顶上（就是顶栏那个图标） */
+const APP_ICON = '/icon.png'
+
 const cover_key = ref(0)
-const cover_err = ref(false)
 const cover_url = computed(() => `${chart_api.bg_url(chart.id)}?v=${cover_key.value}`)
 
 const diff_options = computed(() =>
@@ -44,7 +47,6 @@ async function import_sprite() {
       notify.error(`导入曲绘失败：${r.reason ?? '未知错误'}`)
       return
     }
-    cover_err.value = false
     cover_key.value++
     notify.normal('已导入曲绘')
   } catch (e) {
@@ -87,13 +89,10 @@ async function import_sprite() {
           <div>曲绘</div>
           <a-button2 msg="导入曲绘" @click="import_sprite" />
         </div>
-        <img
-          v-if="!cover_err"
-          :src="cover_url"
-          alt="how are you reading this?"
-          class="song-sprite"
-          @error="cover_err = true"
-        />
+        <!-- 没有曲绘（或者图坏了）时显示项目图标，不留一块空白 -->
+        <a-img :src="cover_url" class="song-sprite">
+          <img :src="APP_ICON" alt="" class="song-sprite" />
+        </a-img>
       </div>
     </div>
 

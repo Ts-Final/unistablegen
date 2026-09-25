@@ -224,12 +224,32 @@ export class ChartManager {
    * 导出 pcd 之类的文件走这里。
    */
   write_file(id: string, fname: string, data: string): boolean {
+    const target = this.target_path(id, fname)
+    if (!target) return false
+    fs.writeFileSync(target, data, "utf-8")
+    return true
+  }
+
+  /**
+   * 把 base64 的二进制写到谱面文件夹里（导出 png 用）。
+   * @param data 不带 `data:image/png;base64,` 前缀的 base64
+   */
+  write_file_b64(id: string, fname: string, data: string): boolean {
+    const target = this.target_path(id, fname)
+    if (!target) return false
+    const buf = Buffer.from(data, "base64")
+    if (!buf.length) return false
+    fs.writeFileSync(target, buf)
+    return true
+  }
+
+  /** 谱面文件夹里某个文件的目标路径；id / 文件名不合法或谱面不存在时返回 null */
+  private target_path(id: string, fname: string): string | null {
     const safe_id = path.basename(id)
     const safe_fname = path.basename(fname)
-    if (!safe_fname || safe_fname === "." || safe_fname === "..") return false
-    if (!this.exists(safe_id)) return false
-    fs.writeFileSync(path.join(this.charts_folder, safe_id, safe_fname), data, "utf-8")
-    return true
+    if (!safe_fname || safe_fname === "." || safe_fname === "..") return null
+    if (!this.exists(safe_id)) return null
+    return path.join(this.charts_folder, safe_id, safe_fname)
   }
 
   /** 在系统文件管理器里定位到这个文件（对应 sv 的 show_file） */

@@ -221,6 +221,86 @@ export class Chart extends StopClass {
       .then(() => Invoke('show-file', { id: this.id, fname }))
   }
 
+  /**
+   * 把谱面预览的那张 SVG（#chart-preview-svg，见 chart-preview-modal）导出成 png。
+   * 对应 sv 的 Chart.write_png。
+   *
+   * 1. 先把 SVG 里引用的外部图片（皮肤贴图、曲绘）换成 data URL：序列化之后这张图
+   *    是当**图片**加载的，相对路径在那个上下文里解析不出来，不换就是一片空白；
+   * 2. 把换好的 SVG 序列化成 blob，用 <img> 载入后画进 canvas；
+   * 3. canvas 转成 png，交给 server 落盘（png 是二进制，走 write-file-b64）。
+   *
+   * 尺寸取 SVG 自己的 width/height 属性（预览图的原始分辨率），不用 getBoundingClientRect：
+   * 预览区会用 CSS 把它缩小显示，按显示尺寸导出的图会糊。
+   * */
+  async write_png() {
+    const svg = document.getElementById('chart-preview-svg') as SVGSVGElement | null
+    if (!svg) {
+      notify.error('没有找到谱面预览，请从「谱面预览」里导出。')
+      return
+    }
+    const rect = svg.getBoundingClientRect()
+    const width = Math.ceil(Number(svg.getAttribute('width')) || rect.width)
+    const height = Math.ceil(Number(svg.getAttribute('height')) || rect.height)
+    if (!width || !height) return
+
+    /*
+     * 超长的谱面预览图会非常大（几万像素），浏览器对 canvas 的边长和面积都有硬上限，
+     * 超了 toDataURL 会直接给一张空白图。这里按上限折一个缩放比，宁可分辨率低一点，
+     * 也不要导出一张空图。
+     * */
+    const scale = Math.min(
+      1,
+      MAX_CANVAS_SIDE / width,
+      MAX_CANVAS_SIDE / height,
+      Math.sqrt(MAX_CANVAS_AREA / (width * height))
+    )
+    if (scale < 1) {
+      console.warn(`[write_png] 预览图 ${width}x${height} 超过 canvas 上限，按 ${scale} 缩小导出`)
+    }
+    const out_w = Math.max(1, Math.floor(width * scale))
+    const out_h = Math.max(1, Math.floor(height * scale))
+
+    const canvas = document.createElement('canvas')
+    canvas.width = out_w
+    canvas.height = out_h
+    const ctx = canvas.getContext('2d')
+    if (!ctx) throw new Error('无法获取 Canvas 上下文')
+    // 预览图自己铺了黑底，这里只是保险
+    ctx.fillStyle = '#ffffff'
+    ctx.fillRect(0, 0, out_w, out_h)
+
+    const cloned = svg.cloneNode(true) as SVGSVGElement
+    await to_data_urls(cloned)
+
+    const svg_text = new XMLSerializer().serializeToString(cloned)
+    const svg_url = URL.createObjectURL(
+      new Blob([svg_text], { type: 'image/svg+xml;charset=utf-8' })
+    )
+    try {
+      const png = await new Promise<string>((resolve, reject) => {
+        const img = new Image()
+        img.onload = () => {
+          try {
+            ctx.drawImage(img, 0, 0, out_w, out_h)
+            resolve(canvas.toDataURL('image/png'))
+          } catch (e) {
+            reject(e instanceof Error ? e : new Error(String(e)))
+          }
+        }
+        img.onerror = () => reject(new Error('SVG 转成图片失败'))
+        img.src = svg_url
+      })
+
+      const fname = safe_fname(this.current_diff.meta.diff_name || 'preview') + '.png'
+      await Invoke('write-file-b64', { id: this.id, fname, data: png.slice(png.indexOf(',') + 1) })
+      notify.success('已导出为png！')
+      await Invoke('show-file', { id: this.id, fname })
+    } finally {
+      URL.revokeObjectURL(svg_url)
+    }
+  }
+
   /** 加一张难度（对应 sv 的 Chart.add_diff） */
   add_diff(d: INotes.diff) {
     this.diffs.push(d)
@@ -279,4 +359,68 @@ export class Chart extends StopClass {
     this.diff.fuck_shown(after, Math.abs(after - before) > 300)
     EventHub.dispatch('audio-time-update')
   }
+}
+
+/**
+ * 导出文件名里不能有的字符（Windows 上写盘会直接失败）。
+ * 难度名是用户随便起的，导出前统一替换掉。
+ * */
+function safe_fname(name: string) {
+  return name.replace(/[\\/:*?"<>|]/g, '_').trim() || 'preview'
+}
+
+/** canvas 的边长 / 面积上限（保守取值，超了 toDataURL 会给空白图） */
+const MAX_CANVAS_SIDE = 12000
+const MAX_CANVAS_AREA = 64_000_000
+
+/** 载入一张图片（导出 png 时把 SVG 里的外链换成 data URL 用） */
+function load_image(src: string) {
+  return new Promise<HTMLImageElement>((resolve, reject) => {
+    const img = new Image()
+    img.onload = () => resolve(img)
+    img.onerror = () => reject(new Error(`图片加载失败：${src}`))
+    img.src = src
+  })
+}
+
+/**
+ * 把 SVG 里所有 <image> 的外部链接换成 data URL（对应 sv 的 write_png 里那一段）。
+ *
+ * 同一张图会被几百个 note 引用（就是那几张皮肤贴图），所以转换结果按 href 缓存，
+ * 一张图只走一遍 canvas。转换失败的就原样留着：图里少一张贴图，也总比整个导出失败好。
+ * */
+async function to_data_urls(svg: SVGSVGElement) {
+  const cache = new Map<string, string>()
+  const tasks: Promise<void>[] = []
+  for (const el of Array.from(svg.querySelectorAll('image'))) {
+    const href = el.getAttribute('href') || el.getAttribute('xlink:href')
+    if (!href || href.startsWith('data:')) continue
+    tasks.push(
+      (async () => {
+        let url = cache.get(href)
+        if (url === undefined) {
+          url = ''
+          try {
+            const img = await load_image(href)
+            const c = document.createElement('canvas')
+            c.width = img.naturalWidth
+            c.height = img.naturalHeight
+            const cx = c.getContext('2d')
+            if (cx && c.width && c.height) {
+              cx.drawImage(img, 0, 0)
+              url = c.toDataURL('image/png')
+            }
+          } catch (e) {
+            console.warn('[write_png] 贴图转换失败：', href, e)
+          }
+          cache.set(href, url)
+        }
+        if (!url) return
+        el.setAttribute('href', url)
+        // 有些渲染路径只认 xlink:href，两个都写上
+        el.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', url)
+      })()
+    )
+  }
+  await Promise.all(tasks)
 }

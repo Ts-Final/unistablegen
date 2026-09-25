@@ -102,6 +102,20 @@ router.post("/write-file", (req: Request, res: Response): void => {
   res.json({ status: "ok" })
 })
 
+/**
+ * 把 base64 的二进制写到谱面文件夹（对应前端的 Invoke('write-file-b64')，导出 png 用）。
+ * body.data 是不带 `data:image/png;base64,` 前缀的 base64。
+ */
+router.post("/write-file-b64", (req: Request, res: Response): void => {
+  const { id, fname, data } = req.body ?? {}
+  if (typeof fname !== "string" || typeof data !== "string")
+    return void res.status(400).json({ error: "invalid body" })
+  if (!chart_manager.write_file_b64(String(id ?? ""), fname, data))
+    return void res.status(404).json({ error: "no such chart" })
+  console.log(`[write-file-b64] ${id}/${fname}（${data.length} 字节 base64）`)
+  res.json({ status: "ok" })
+})
+
 /** 在文件管理器里定位到文件（对应 sv 的 Invoke('show-file')） */
 router.post("/show-file", (req: Request, res: Response): void => {
   const { id, fname } = req.body ?? {}

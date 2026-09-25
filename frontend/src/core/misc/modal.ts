@@ -8,6 +8,7 @@ import ShortcutModal from '@components/modals/shortcut-modal.vue'
 import VersionsModal from '@components/modals/versions-modal.vue'
 import CreditsModal from '@components/modals/credits-modal.vue'
 import IExporterModal from '@components/modals/iexporter-modal.vue'
+import ChartPreviewModal from '@components/modals/chart-preview-modal.vue'
 
 /**
  * modal 管理器 —— 用法与 sv 的 `modal.XxxModal.show({ ... })` 一致。
@@ -25,6 +26,7 @@ export class modal<T extends Component> {
   static VersionsModal = new modal(VersionsModal)
   static CreditsModal = new modal(CreditsModal)
   static IExporterModal = new modal(IExporterModal)
+  static ChartPreviewModal = new modal(ChartPreviewModal)
 
   component: T
   props: Record<string, unknown> | undefined

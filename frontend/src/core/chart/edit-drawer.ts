@@ -202,6 +202,22 @@ export class DiffEditor extends StopClass {
     return Math.max(0, this.diff.nearest(t))
   }
 
+  /**
+   * 竖直分列吸附：把 x_pos 吸附到它所在那一栏的**中心**。
+   *
+   * column 栏就有 column 个吸附点，栏中心画成虚线（见 DiffDrawer.create_grid）。
+   * 判定用的是「鼠标落在哪一栏」而不是「离哪个中心最近」：每一栏本身就是它中心点的
+   * 泰森多边形，两者结果完全一样，但这个写法不用做浮点距离比较。
+   *
+   * column 为 0 时不吸附；按住 Alt 也跳过（和时间的吸附规则保持一致）。
+   * */
+  private snap_x(x_pos: number) {
+    const n = Math.floor(Storage.settings.column)
+    if (n <= 0 || GlobalStat.func_keys.value.alt) return clamp_pos(x_pos)
+    const i = Math.min(n - 1, Math.max(0, Math.floor((x_pos / 100) * n)))
+    return clamp_pos(((i + 0.5) * 100) / n)
+  }
+
   private reset_pending() {
     this.hold_pending = { active: false, time: 0, x_pos: 0, nodes: [] }
     this.hazard_pending = { step: 0, time: 0, x1: 0, x2: 0, end: 0, y1: 0 }
@@ -339,7 +355,7 @@ export class DiffEditor extends StopClass {
     const tool = NoteType.tool
     if (!tool) return
     const time = this.snap_time(this.event_time(this.pointer.y))
-    const x_pos = clamp_pos(this.drawer.pos_of(this.pointer.x))
+    const x_pos = this.snap_x(this.drawer.pos_of(this.pointer.x))
 
     if (tool === 'hold') return this.place_hold(time, x_pos)
     if (tool === 'hazard') return this.place_hazard(time, x_pos)
@@ -464,7 +480,7 @@ export class DiffEditor extends StopClass {
   private hazard_preview(): IHazardRaw | null {
     const h = this.hazard_pending
     if (h.step === 0) return null
-    const x_pos = clamp_pos(this.drawer.pos_of(this.pointer.x))
+    const x_pos = this.snap_x(this.drawer.pos_of(this.pointer.x))
     const cur_time = this.snap_time(this.event_time(this.pointer.y))
     // 第 2 步（选 x2）时 end 还没定，先给「几个像素厚」的一个占位
     const thin = HAZARD_PREVIEW_THICKNESS / Math.max(this.m, 1e-6)
@@ -724,7 +740,7 @@ export class DiffEditor extends StopClass {
     if (this.hold_pending.active && NoteType.tool === 'hold') {
       this.add_hold_node(
         this.snap_time(this.event_time(this.pointer.y)),
-        clamp_pos(this.drawer.pos_of(this.pointer.x))
+        this.snap_x(this.drawer.pos_of(this.pointer.x))
       )
       this.redraw_overlay()
       return
@@ -815,7 +831,7 @@ export class DiffEditor extends StopClass {
   private hazard_dot(): { x: number; y: number } {
     const d = this.drawer
     const h = this.hazard_pending
-    const x = d.x_of(clamp_pos(d.pos_of(this.pointer.x)))
+    const x = d.x_of(this.snap_x(d.pos_of(this.pointer.x)))
     let time: number
     if (h.step === 1) time = h.time // 选 x2：锁在起点时间
     else if (h.step === 3) time = h.end // 选 y2：锁在终点时间
@@ -967,7 +983,7 @@ export class DiffEditor extends StopClass {
     if (!this.ghost.visible) return
 
     const time = this.snap_time(this.event_time(this.pointer.y))
-    const x_pos = clamp_pos(d.pos_of(this.pointer.x))
+    const x_pos = this.snap_x(d.pos_of(this.pointer.x))
     const tool = NoteType.tool
 
     // hold 放置中：头部 + 已定节点 + 当前鼠标

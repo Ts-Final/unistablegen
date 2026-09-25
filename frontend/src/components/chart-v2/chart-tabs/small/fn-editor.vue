@@ -24,7 +24,23 @@ const meter = computed({
   }
 })
 
+/**
+ * 竖直分列：把轨道平均分成 N 栏，编辑画布上竖着画网格，
+ * pending（待放置物件）的中心吸附到栏中心；N = 0 时不画也不吸附。
+ * */
+const column = computed({
+  get: () => Storage.settings.column,
+  set: (v: number) => {
+    const n = Math.max(0, Math.min(Math.round(v), Storage.settings.max_column))
+    if (n === Storage.settings.column) return
+    Storage.settings.column = n
+    EventHub.dispatch('column-changed')
+  }
+})
+
 const METERS = [4, 6, 8, 12, 16, 24, 32, 48, 64]
+/** 分列的快捷档位（和分音一样一排九个） */
+const COLUMNS = [0, 2, 3, 4, 5, 6, 8, 12, 16]
 </script>
 
 <template>
@@ -56,6 +72,29 @@ const METERS = [4, 6, 8, 12, 16, 24, 32, 48, 64]
       </tr>
       <tr>
         <td v-for="m in METERS" :key="m" class="meter-button" @click="meter = m">{{ m }}</td>
+      </tr>
+      <tr>
+        <td rowspan="2">竖直分列</td>
+        <td colspan="9">
+          <a-range
+            v-model="column"
+            :max="Storage.settings.max_column"
+            :min="0"
+            :step="1"
+            style="width: 100%"
+          />
+        </td>
+        <td>
+          <a-number-input
+            v-model="column"
+            :max="Storage.settings.max_column"
+            :min="0"
+            :step="1"
+          />
+        </td>
+      </tr>
+      <tr>
+        <td v-for="c in COLUMNS" :key="c" class="meter-button" @click="column = c">{{ c }}</td>
       </tr>
     </tbody>
   </table>

@@ -213,6 +213,8 @@ export class DiffDrawer extends StopClass {
   decoration: Container
   /** 轨道底色（在所有物件下面，所以单独一层） */
   background: Container
+  /** 竖直分列网格（编辑模式下用，垫在物件下面） */
+  grid: Container
 
   constructor(diff: Chart_diff, sizing: { total_width: number }) {
     super()
@@ -222,6 +224,7 @@ export class DiffDrawer extends StopClass {
     this.sizing = sizing
     this.decoration = new Container({ label: 'decoration' })
     this.background = new Container({ label: 'background' })
+    this.grid = new Container({ label: 'column-grid' })
 
     const tstyle = (size: number, fill: string | number) =>
       new TextStyle({ fontFamily: 'Arial', fontSize: size, fill, align: 'center' })
@@ -322,6 +325,7 @@ export class DiffDrawer extends StopClass {
     // 底部 bpm 区域（decoration）要盖住所有物件，bpm 文字再盖在它上面
     this.app.stage.addChild(
       this.background,
+      this.grid,
       this.drawers.beat.container,
       this.drawers.beat_text.container,
       this.drawers.bpm_text.container,
@@ -342,6 +346,8 @@ export class DiffDrawer extends StopClass {
     this.add_on('fuck-shown', () => this.recreate())
     // 数据改了（比如在 ease 面板里调曲线），把形状重建一遍
     this.add_on('diff-changed', () => this.refresh_shapes())
+    // 竖直分列改了：只重画网格
+    this.add_on('column-changed', () => this.create_grid())
     this.add_on('meter-changed', () => {
       this.drawers.beat.recreate(...this.diff.shown_timing_list.beat_list)
       this.update()
@@ -560,6 +566,7 @@ export class DiffDrawer extends StopClass {
       autoDensity: true
     })
     this.create_background()
+    this.create_grid()
     this.create_decoration()
   }
 
@@ -578,6 +585,44 @@ export class DiffDrawer extends StopClass {
     const g = new Graphics()
     g.rect(this.track_left, 0, this.track_width, SCREEN_HEIGHT).fill(Storage.settings.track_color)
     this.background.addChild(g)
+  }
+
+  /**
+   * 竖直分列网格：把轨道平均分成 column 栏。
+   *
+   * - 栏边界画成细实线（用来区分栏）；
+   * - 每栏的中心画成虚线 —— pending 的**中心**就吸附在这里（共 column 个吸附点）；
+   * - column 为 0 时什么都不画，也不吸附（见 edit-drawer 的 snap_x）。
+   *
+   * 栏太窄时自动省线：宽度不到 3px 连边界都不画，不到 10px 就不画中心虚线，
+   * 免得 100 栏把画布糊成一片。
+   */
+  create_grid() {
+    this.grid.removeChildren()
+    const n = Math.floor(Storage.settings.column)
+    if (n <= 0) return
+    const w = this.track_width / n
+    const color = Storage.settings.column_color
+
+    // 每栏中心的虚线（真正的吸附位置）
+    if (w >= 10) {
+      const centers = new Graphics()
+      const dash = 8
+      for (let i = 0; i < n; i++) {
+        const x = this.track_left + (i + 0.5) * w
+        for (let y = 0; y < SCREEN_HEIGHT; y += dash * 2) centers.rect(x - 0.5, y, 1, dash)
+      }
+      centers.fill({ color, alpha: 0.5 })
+      this.grid.addChild(centers)
+    }
+
+    // 栏边界（含最左最右）
+    if (w >= 3) {
+      const bounds = new Graphics()
+      for (let i = 0; i <= n; i++) bounds.rect(this.track_left + i * w - 0.5, 0, 1, SCREEN_HEIGHT)
+      bounds.fill({ color, alpha: 0.22 })
+      this.grid.addChild(bounds)
+    }
   }
 
   /**
@@ -769,6 +814,7 @@ export class DiffDrawer extends StopClass {
   rebuild_all() {
     this.set_background()
     this.create_background()
+    this.create_grid()
     this.create_decoration()
     this.diff.force_fuck()
     this.force_recreate()

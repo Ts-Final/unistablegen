@@ -1,0 +1,255 @@
+name: Release
+
+# 按提交信息决定这次 push 要发什么：
+#   [Frontend]  -> 前端 build/page/ 整个文件夹压成 page.zip
+#   [Server]    -> 服务端 build/unistablegen.exe（build:exe 会顺带把 page/ 也构建好）
+#   两个标记都有 -> 两个产物都传
+#   两个标记都没有 -> 不建 Release，直接结束（不浪费跑一次 pkg 的时间）
+#
+# 标记是严格区分大小写的字面量，出现在本次 push 的任意一条提交信息里即算。
+# 版本号分别取：前端 frontend/src/core/storage.ts 的 Version.str，服务端 server/package.json 的 version。
+# tag 用安全的单串（v<前端>-<服务端>），Release 标题里写斜杠形式（v<前端>/<服务端>）。
+on:
+  push:
+    branches:
+      - master
+  # 允许手动补发一次（补发时看 HEAD 那条提交的信息）
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # 要能 diff 出本次 push 的提交范围，所以取全量历史
+          fetch-depth: 0
+
+      # ---- 1. 解析提交信息 + 版本号，决定 tag 和产物 ----
+      - name: Detect markers and versions
+        id: detect
+        shell: pwsh
+        env:
+          # 通过环境变量把事件信息传进来，避免在脚本里拼 ${{ }} 时的转义问题
+          EVENT_NAME: ${{ github.event_name }}
+          EVENT_BEFORE: ${{ github.event.before }}
+          EVENT_AFTER: ${{ github.event.after }}
+          RUN_NUMBER: ${{ github.run_number }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          # 下面 git 的失败要能被我们自己捕获，不要直接中断脚本
+          if (Test-Path variable:PSNativeCommandUseErrorActionPreference) {
+            $PSNativeCommandUseErrorActionPreference = $false
+          }
+
+          function Write-OutputLine([string]$name, [string]$value) {
+            Add-Content -Path $env:GITHUB_OUTPUT -Value "$name=$value" -Encoding utf8
+          }
+
+          # 1.1 收集本次 push 涉及的全部提交信息
+          # workflow_dispatch 没有 before/after；新分支的 before 是全 0
+          $messages = @()
+          if ($env:EVENT_NAME -ne 'workflow_dispatch' -and $env:EVENT_BEFORE -and $env:EVENT_BEFORE -notmatch '^0+$') {
+            $messages = @(git log --format=%B "$($env:EVENT_BEFORE)..$($env:EVENT_AFTER)" 2>$null)
+            if ($LASTEXITCODE -ne 0) {
+              Write-Host "::warning::无法 diff $($env:EVENT_BEFORE)..$($env:EVENT_AFTER)（可能被 force push 过），退回只看 HEAD"
+              $messages = @()
+            }
+          }
+          if ($messages.Count -eq 0) {
+            $messages = @(git log --format=%B -1 HEAD)
+          }
+          $text = $messages -join "`n"
+          Write-Host "===== 本次 push 的提交信息 ====="
+          Write-Host $text
+
+          # 1.2 匹配标记（严格区分大小写）
+          $fe = $text.Contains('[Frontend]')
+          $sv = $text.Contains('[Server]')
+          Write-Host "frontend=$fe server=$sv"
+
+          # 1.3 读版本号
+          $storage = Get-Content 'frontend/src/core/storage.ts' -Raw
+          $fe_match = [regex]::Match($storage, "str:\s*'([^']+)'")
+          if (-not $fe_match.Success) {
+            throw "在 frontend/src/core/storage.ts 里没找到 Version.str（形如 str: '0.1.0'）"
+          }
+          $fe_ver = $fe_match.Groups[1].Value
+
+          $sv_ver = (Get-Content 'server/package.json' -Raw | ConvertFrom-Json).version
+          if (-not $sv_ver) { throw "server/package.json 里没有 version" }
+
+          # 1.4 tag：安全的单串；标题用斜杠形式
+          $tag = "v$fe_ver-$sv_ver"
+          $title = "v$fe_ver/$sv_ver"
+
+          # 版本号没变时（比如只改前端但版本没 bump）会撞已有 tag，
+          # 这时补一个构建号后缀，保证 Release 不会因为 tag 重复而失败
+          $exists = git ls-remote --tags origin "refs/tags/$tag" 2>$null
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "::warning::查询远端 tag 失败，按 tag 不存在处理"
+          } elseif ($exists) {
+            $tag = "$tag.$($env:RUN_NUMBER)"
+            $title = "$title.$($env:RUN_NUMBER)"
+            Write-Host "tag 已存在，本次改用 $tag"
+          }
+
+          Write-OutputLine 'fe' $fe.ToString().ToLower()
+          Write-OutputLine 'sv' $sv.ToString().ToLower()
+          Write-OutputLine 'fe_ver' $fe_ver
+          Write-OutputLine 'sv_ver' $sv_ver
+          Write-OutputLine 'tag' $tag
+          Write-OutputLine 'title' $title
+
+          $summary = @(
+            "### 发版判定"
+            ""
+            "- ``[Frontend]``：$fe"
+            "- ``[Server]``：$sv"
+            "- 前端版本：``$fe_ver`` / 服务端版本：``$sv_ver``"
+            "- tag：``$tag``（标题：$title）"
+          ) -join "`n"
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value $summary -Encoding utf8
+
+      - name: Skip notice
+        if: steps.detect.outputs.fe != 'true' && steps.detect.outputs.sv != 'true'
+        shell: pwsh
+        run: |
+          Write-Host "提交信息里既没有 [Frontend] 也没有 [Server]，本次不发 Release。"
+
+      # ---- 2. 环境 ----
+      - name: Setup pnpm
+        if: steps.detect.outputs.fe == 'true' || steps.detect.outputs.sv == 'true'
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node
+        if: steps.detect.outputs.fe == 'true' || steps.detect.outputs.sv == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: |
+            frontend/pnpm-lock.yaml
+            server/pnpm-lock.yaml
+
+      # ---- 3. 安装依赖（只装这次要构建的那一边需要的东西）----
+      # 服务端的 build:exe 会调用 frontend 的 build，所以 [Server] 也要装前端依赖
+      - name: Install frontend deps
+        if: steps.detect.outputs.fe == 'true' || steps.detect.outputs.sv == 'true'
+        working-directory: frontend
+        run: pnpm install --frozen-lockfile
+
+      - name: Install server deps
+        if: steps.detect.outputs.sv == 'true'
+        working-directory: server
+        run: pnpm install --frozen-lockfile
+
+      # ---- 4. 构建 ----
+      # 只要 [Frontend] 时单独构建页面；同时有 [Server] 时交给 build:exe 顺带构建，省一次前端构建
+      - name: Build frontend page
+        if: steps.detect.outputs.fe == 'true' && steps.detect.outputs.sv != 'true'
+        working-directory: frontend
+        run: pnpm run build
+
+      - name: Build server exe
+        if: steps.detect.outputs.sv == 'true'
+        working-directory: server
+        run: pnpm run build:exe
+
+      - name: Check server exe
+        if: steps.detect.outputs.sv == 'true'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $exe = 'build/unistablegen.exe'
+          if (-not (Test-Path $exe)) { throw "没有生成 $exe" }
+          $size = (Get-Item $exe).Length
+          Write-Host "$exe = $size 字节"
+          # pkg 出来的 exe 至少几十 MB，太小说明 SEA blob 没塞进去
+          if ($size -lt 20MB) { throw "$exe 只有 $size 字节，明显不对" }
+
+      - name: Zip page folder
+        if: steps.detect.outputs.fe == 'true'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if (-not (Test-Path 'build/page/index.html')) {
+            throw "build/page/index.html 不存在，前端没有构建成功"
+          }
+          # -Path 传目录本身，压缩包里就是 page/ 开头，解压即得整个文件夹
+          Compress-Archive -Path 'build/page' -DestinationPath 'build/page.zip' -Force
+          Get-ChildItem 'build/page' -Recurse -File | Measure-Object -Property Length -Sum |
+            ForEach-Object { Write-Host "page/: $($_.Count) 个文件，$([math]::Round($_.Sum / 1KB, 1)) KB" }
+          Write-Host "page.zip: $((Get-Item 'build/page.zip').Length) 字节"
+
+      # ---- 5. 写 Release 说明：链接到仓库里维护更新日志的 versions.vue ----
+      - name: Write release notes
+        if: steps.detect.outputs.fe == 'true' || steps.detect.outputs.sv == 'true'
+        shell: pwsh
+        env:
+          REPO_URL: ${{ github.server_url }}/${{ github.repository }}
+          SHA: ${{ github.sha }}
+          TAG: ${{ steps.detect.outputs.tag }}
+          FE: ${{ steps.detect.outputs.fe }}
+          SV: ${{ steps.detect.outputs.sv }}
+          FE_VER: ${{ steps.detect.outputs.fe_ver }}
+          SV_VER: ${{ steps.detect.outputs.sv_ver }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $changelog = "$env:REPO_URL/blob/master/frontend/src/components/credits/versions.vue"
+          $latest = "$env:REPO_URL/releases/latest/download"
+
+          $lines = [System.Collections.Generic.List[string]]::new()
+          $lines.Add('## unistablegen')
+          $lines.Add('')
+          $lines.Add('| 组件 | 版本 | 本次产物 |')
+          $lines.Add('| --- | --- | --- |')
+          $lines.Add("| 前端 frontend | ``$env:FE_VER`` | $(if ($env:FE -eq 'true') { '`page.zip`' } else { '—' }) |")
+          $lines.Add("| 服务端 server | ``$env:SV_VER`` | $(if ($env:SV -eq 'true') { '`unistablegen.exe`' } else { '—' }) |")
+          $lines.Add('')
+          $lines.Add("**更新内容 / 更新日志**：[``frontend/src/components/credits/versions.vue``]($changelog)")
+          $lines.Add('')
+          $lines.Add('### 下载')
+          if ($env:FE -eq 'true') {
+            $lines.Add("- **前端页面** [``page.zip``]($latest/page.zip)：解压后把整个 ``page/`` 文件夹放到 ``unistablegen.exe`` 旁边（里面是 index.html + assets/）。")
+          }
+          if ($env:SV -eq 'true') {
+            $lines.Add("- **服务端程序** [``unistablegen.exe``]($latest/unistablegen.exe)：Windows x64 单文件，双击即用。")
+          }
+          $lines.Add('')
+          $lines.Add("对应提交：$env:REPO_URL/commit/$env:SHA")
+          $lines.Add("")
+          $lines.Add("<sub>由 GitHub Actions 构建 · ``$env:TAG``</sub>")
+
+          Set-Content -Path 'release_notes.md' -Value ($lines -join "`n") -Encoding utf8
+          Write-Host '===== release_notes.md ====='
+          Get-Content 'release_notes.md'
+
+      # ---- 6. 建 Release 并上传产物 ----
+      - name: Create release
+        if: steps.detect.outputs.fe == 'true' || steps.detect.outputs.sv == 'true'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.detect.outputs.tag }}
+          TITLE: ${{ steps.detect.outputs.title }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $assets = @()
+          if (Test-Path 'build/page.zip') { $assets += 'build/page.zip' }
+          if (Test-Path 'build/unistablegen.exe') { $assets += 'build/unistablegen.exe' }
+          if ($assets.Count -eq 0) { throw '一个产物都没有，不建 Release' }
+
+          Write-Host "发版 $env:TAG（$env:TITLE），产物：$($assets -join ', ')"
+          gh release create $env:TAG @assets --title $env:TITLE --notes-file release_notes.md --target "${{ github.sha }}"
+          gh release view $env:TAG --json url,tagName,assets --jq '"release: \(.url)\n" + (.assets[] | "  - \(.name) \(.size) 字节")'

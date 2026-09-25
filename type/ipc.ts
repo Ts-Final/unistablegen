@@ -9,6 +9,19 @@ export interface ipc {
     },
     r: void
   }
+  /**
+   * 把 base64 的二进制写进谱面文件夹（导出 png 用）。
+   * 文本走 write-file，png 这类二进制走这里。
+   * */
+  "write-file-b64": {
+    args: {
+      id: string
+      fname: string
+      /** 不带 `data:image/png;base64,` 前缀的 base64 */
+      data: string
+    },
+    r: void
+  }
   "show-file": {
     args: {
       id: string

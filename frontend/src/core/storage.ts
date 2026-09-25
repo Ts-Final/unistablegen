@@ -39,6 +39,23 @@ function default_settings(): ISettings {
 
     hold_line_width: 8,
 
+    /** 竖直分列：0 = 不吸附、不画网格 */
+    column: 0,
+    /** 分列上限（设置里可改） */
+    max_column: 100,
+    column_color: '#7afbff',
+
+    /** 谱面预览里默认全开（和 sv 的默认一致） */
+    svg_shown_parts: {
+      sprite: true,
+      song: true,
+      diff: true,
+      sv: true,
+      timing: true,
+      bar: true,
+      tick: true
+    },
+
     bar_or_section: false,
     bar_from_0: true,
     show_ticks: true,

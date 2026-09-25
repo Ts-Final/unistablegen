@@ -9,7 +9,15 @@ import {
 } from 'vue'
 
 /** 全局事件总线里可用的事件名 */
-const events = ['audio-time-update', 'fuck-shown', 'scale-changed', 'meter-changed', 'diff-changed'] as const
+const events = [
+  'audio-time-update',
+  'fuck-shown',
+  'scale-changed',
+  'meter-changed',
+  'diff-changed',
+  /** 竖直分列（column）改了：编辑画布要重画网格 */
+  'column-changed'
+] as const
 
 export type eventNames = (typeof events)[number]
 

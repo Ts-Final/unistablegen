@@ -9,8 +9,14 @@ import AButton2 from '@components/a-elements/a-button2.vue'
 import { Chart } from '@core/chart/chart.ts'
 import { Invoke } from '@core/ipc-handler.ts'
 import { notify } from '@core/misc/notify.ts'
+import { modal } from '@core/misc/modal.ts'
 
 const chart = Chart.$current
+
+/** 打开谱面预览（里面可以导出 png），对应 sv 的「导出svg」 */
+function open_preview() {
+  modal.ChartPreviewModal.show({})
+}
 
 /** 导入 pcd：ask-file 拿路径 -> open-file-utf 拿文本 -> 作为新难度加进来 */
 async function read_pcd() {
@@ -35,6 +41,7 @@ function write_pcd() {
       <div class="iexports">
         <a-button2 msg="导入pcd" @click="read_pcd" />
         <a-button2 msg="导出pcd" @click="write_pcd" />
+        <a-button2 class="wide" msg="谱面预览 / 导出png" @click="open_preview" />
       </div>
     </div>
   </simple-modal>
@@ -68,5 +75,9 @@ function write_pcd() {
 /* uni 只留了导入/导出两个按钮，各占两格，铺开的宽度才和 sv 的四列一致 */
 .iexports > * {
   grid-column: span 2;
+}
+/* 谱面预览一个人占一行 */
+.iexports > .wide {
+  grid-column: span 4;
 }
 </style>

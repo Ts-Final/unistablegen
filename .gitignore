@@ -30,3 +30,5 @@ charts/
 .pnpm-store/
 external/
 skin/
+
+server/dist-bundle

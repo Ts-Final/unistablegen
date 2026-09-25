@@ -139,6 +139,15 @@ onUnmounted(() => {
         <div>Beat容差</div>
         <a-number-input v-model="r.settings.beat_tolerance" />
         <ds>计算 beat 时，在每个 bpm 结束前多少 ms 不认为有 beat。</ds>
+        <div>分列上限</div>
+        <a-number-input v-model="r.settings.max_column" />
+        <ds>
+          编辑面板里「竖直分列」能拉到多少栏。分列会把轨道横向平均分成 N 栏、在编辑画布上
+          竖着画网格，待放置物件的中心会吸附到栏中心；0 栏表示不画网格也不吸附。
+        </ds>
+        <div>网格线颜色</div>
+        <a-color-input v-model="r.settings.column_color" />
+        <ds>竖直分列网格的颜色（栏边界是实线，栏中心是虚线，也就是吸附位置）。</ds>
         <div>小节号或拍号</div>
         <a-checkbox2 v-model="r.settings.bar_or_section" />
         <div>Beat从0开始</div>

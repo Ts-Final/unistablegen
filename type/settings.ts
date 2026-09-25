@@ -65,6 +65,36 @@ export interface ISettings {
     bar_dy: number
   }
 
+  /* ---- 编辑网格 ---- */
+  /**
+   * 竖直分列：把轨道横向分成几栏。
+   * 0 表示不画网格、也不吸附。
+   * */
+  column: number
+  /** 竖直分列的上限（编辑面板里的滑块/输入框顶到这个值） */
+  max_column: number
+  /** 网格线的颜色 */
+  column_color: string
+
+  /* ---- 谱面预览 ---- */
+  /** 谱面预览（导出 png）里显示哪些部分 */
+  svg_shown_parts: {
+    /** 曲绘 */
+    sprite: boolean
+    /** 曲名 - 曲师 */
+    song: boolean
+    /** 难度 / 谱师 */
+    diff: boolean
+    /** 水印 */
+    sv: boolean
+    /** timing 标记（#序号 + bpm） */
+    timing: boolean
+    /** 小节线 */
+    bar: boolean
+    /** 分音 */
+    tick: boolean
+  }
+
   /* ---- 启动 ---- */
   /**
    * server 监听的端口。
