@@ -4,8 +4,11 @@
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "lib": ["ES2022"],
+    // 不再写死 rootDir：前后端共用的类型放在 ../type 下，
+    // rootDir 写死会触发 TS6059（文件不在 rootDir 内）。
+    // 去掉之后 tsc 会自己推算公共根目录（仓库根），产物结构变成
+    //   dist/server/src/...  与  dist/type/...
     "outDir": "./dist",
-    "rootDir": "./src",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
@@ -14,8 +17,7 @@
     "declaration": true,
     "sourceMap": true
   },
-  "include": ["src/**/*",
-    "../type/*.ts"
-  ],
+  // src 与前后端共用的 type 一起编译（type 里只有类型，产物是空模块）
+  "include": ["src/**/*", "../type/**/*"],
   "exclude": ["node_modules", "dist"]
 }

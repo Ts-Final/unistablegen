@@ -1,31 +1,51 @@
-import {Router} from "express"
-import {file_paths, find_png} from "../file_path.js"
-import path from "node:path"
-import fs from "fs"
+import { Router, type Response } from "express"
+import { chart_manager } from "../chart-manager.js"
 
-const router = Router()
+const router: Router = Router()
 
-const chart_path = file_paths.charts
-
-router.get("/:id/bg", async (req, res) => {
-  const id = req.params.id
-  if (fs.existsSync(path.join(chart_path, id))) {
-    // TODO: find the png/jpg/gif/... and return it
-    const folder = path.join(chart_path, id)
-    const png = find_png(folder, "jacket")
-    if (!png) return res.status(404).send("No png found")
-    res.sendFile(path.join(chart_path, id, png))
+/**
+ * 列出所有谱面。走 charts/charts.json 索引（不存在则自动生成）。
+ * 同时挂在 GET /api/charts 与 POST /api/all-charts 上。
+ */
+export function list_charts(_req: unknown, res: Response) {
+  try {
+    res.json(chart_manager.list())
+  } catch (e) {
+    console.error("[charts] 读取谱面列表失败：", e)
+    res.status(500).json({ error: "failed to list charts" })
   }
-  return res.status(404)
+}
+
+router.get("/", list_charts)
+
+/** 谱面数据本体 chart.json（类型为 INotes.final） */
+router.get("/:id/json", (req, res) => {
+  const json = chart_manager.chart_json_path(req.params.id)
+  if (!json) return res.status(404).json({ error: "no such chart" })
+  res.sendFile(json)
 })
 
-router.get("/:id/json", async (req, res) => {
-  const id = req.params.id
-  if (fs.existsSync(path.join(chart_path, id))) {
-    // i wish it could be chart.usg, but finally give up on that
-    res.sendFile(path.join(chart_path, id, "chart.json"))
-  }
-  return res.status(404)
+/** 保存谱面数据，body 就是 INotes.final */
+router.post("/:id/json", (req, res) => {
+  const data = req.body
+  if (!data || typeof data !== "object") return res.status(400).json({ error: "invalid body" })
+  if (!chart_manager.write(req.params.id, data))
+    return res.status(404).json({ error: "no such chart" })
+  res.json({ status: "ok" })
 })
 
-export default router;
+/** 谱面音频（后缀未知，靠 find） */
+router.get("/:id/audio", (req, res) => {
+  const audio = chart_manager.audio_path(req.params.id)
+  if (!audio) return res.status(404).json({ error: "no audio found" })
+  res.sendFile(audio)
+})
+
+/** 曲绘 */
+router.get("/:id/bg", (req, res) => {
+  const bg = chart_manager.bg_path(req.params.id)
+  if (!bg) return res.status(404).json({ error: "no image found" })
+  res.sendFile(bg)
+})
+
+export default router

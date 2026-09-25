@@ -47,6 +47,13 @@ export namespace INotes {
     // right ease
     e2: number
   }
+  /**
+   * wide note: 整轨音符。
+   * uni 里所有轨道的尺寸一致，因此 wide 不需要 x_pos —— 它总是铺满整条轨道。
+   * */
+  export type wide = {
+    time: number
+  }
   export type chip = {
     time: number
     x_pos: number
@@ -67,6 +74,8 @@ export namespace INotes {
   export type diff = {
     note: note[]
     hold: hold[]
+    /** 整轨(wide)音符，只有时间信息，渲染时铺满整条轨道 */
+    wide: wide[]
     hazard: hazard[]
     chip: chip[]
     flick: flick[]
@@ -74,6 +83,8 @@ export namespace INotes {
     
     meta: meta
   }
+  /** diff 里所有物件数组的键名 */
+  export type diff_key = 'note' | 'hold' | 'wide' | 'hazard' | 'chip' | 'flick' | 'timing'
   export type meta = {
     charter: string
     diff_name: string
