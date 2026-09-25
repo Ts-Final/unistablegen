@@ -100,7 +100,12 @@ const HAZARD_PREVIEW_THICKNESS = 4
  *   - hold：左键定头，每次右键加一段，最后一次左键收尾
  *   - hazard：四次左键依次定 x1 / x2 / y1 / y2
  * - 左键（物件上）：拖动物件（时间吸附到当前分音）
- * - Ctrl + 左键点击：选中/取消选中
+ *   - 放置模式（选中了某个物件类型）下，**没选中**的 hold / hazard 不抢左键：
+ *     note 可以和它们重叠，点在它们的响应区域里照常放置
+ *   - 选择模式里单独点 hold / hazard 会顺带把它选起来（它们带控制点）；
+ *     放置模式里只有已经选中的那条才拖得动
+ * - Shift + 左键（**已选中**的 hold 上）：在该 hold 上插一个新节点（点在哪个段里就插到哪个段）
+ * - Ctrl + 左键点击：选中/取消选中（任何模式下都可以，hold / hazard 也靠它选）
  * - 右键：删除鼠标下的物件；放在 hold 的蓝色节点上则删除该节点
  * - Delete：删除选中的物件；Ctrl+C/X/V：复制/剪切/粘贴；Ctrl+Z/Y：撤销/重做；Esc：取消当前放置
  * */
@@ -121,6 +126,20 @@ export class DiffEditor extends StopClass {
   private clip_els: { kind: ObjKind; obj: IObjRef['obj']; el: Container }[] = []
   /** 记住上一次构建预览用的剪贴板数组，换了一份才重建 */
   private clip_src: IClipboardItem[] | null = null
+  /**
+   * 拖动预览：拖动中的那些物件。
+   *
+   * 拖动时物件本体从池子里藏起来（drawer.hidden），改由这儿画一层半透明的 ——
+   * 和放置预览一样，「松手会落在哪」一眼就能看见。
+   * */
+  private drag_ghost = new Container({ label: 'drag-ghost' })
+  private drag_els: {
+    kind: ObjKind
+    obj: IObjRef['obj']
+    el: Container
+    /** 建这个元素时物件的横向基准，变了才需要重建（见 update_drag_ghost） */
+    sx: number | null
+  }[] = []
 
   private pointer = { x: 0, y: 0, inside: false }
   private drag: IDragState = {
@@ -148,6 +167,7 @@ export class DiffEditor extends StopClass {
       this.band_gfx,
       this.select_gfx,
       this.clip_ghost,
+      this.drag_ghost,
       this.ghost,
       this.handle_gfx
     )
@@ -161,7 +181,11 @@ export class DiffEditor extends StopClass {
       () => NoteType.tool,
       () => this.reset_pending()
     )
-    this.add_stop(() => this.overlay.destroy({ children: true }))
+    this.add_stop(() => {
+      // 编辑器在拖动中途被停掉的话，别让那些物件一直藏在池子里
+      this.clear_drag_ghost()
+      this.overlay.destroy({ children: true })
+    })
 
     // 剪贴板/删除要按鼠标位置来，所以由编辑器绑定，快捷键系统只调用槽位
     this.bind_clipboard()
@@ -300,6 +324,40 @@ export class DiffEditor extends StopClass {
     return null
   }
 
+  /**
+   * 只找鼠标下那条**已经选中**的 hold（shift+左键加节点用）。
+   *
+   * 只看选中的：没选中的 hold 连控制点都没显示，shift 点上去插节点也看不见任何反馈，
+   * 反而会和「在 hold 身上放 note」抢点击。
+   * */
+  private pick_selected_hold(): IObjRef | null {
+    for (let i = selected.value.length - 1; i >= 0; i--) {
+      const ref = selected.value[i]
+      if (ref.kind !== 'hold') continue
+      const r = this.obj_rect(ref)
+      if (r && this.in_rect(this.pointer.x, this.pointer.y, r)) return ref
+    }
+    return null
+  }
+
+  /**
+   * 这一下左键能不能「抓住」鼠标下的物件（= 拖动它）。
+   *
+   * 放置模式（选中了某个物件类型）下，长条的 hold / hazard 只有在**已经选中**时才抓得住：
+   * - 选中了：抓得住，能整条拖走，蓝色控制点/金框一直跟着 —— 刚放下的那条是自动选中的，
+   *   放完就能直接拖着微调；
+   * - 没选中：让左键穿过去，落到 place() 上，这样 note 才能压在 ln / 红区身上
+   *   （它们本来就允许重叠）。
+   * 想让点击穿过去，就先取消选中（Esc，或者按 0 回选择模式点空白）。
+   *
+   * 控制点在最前面判定，所以选中后拖节点不受影响。
+   * */
+  private grabbable(target: IObjRef) {
+    if (NoteType.tool === null) return true
+    if (target.kind !== 'hold' && target.kind !== 'hazard') return true
+    return selected.value.some((s) => toRaw(s.obj) === toRaw(target.obj))
+  }
+
   private in_rect(x: number, y: number, r: IRect, pad = 3) {
     return (
       x >= Math.min(r.x1, r.x2) - pad &&
@@ -421,6 +479,56 @@ export class DiffEditor extends StopClass {
     p.nodes.push([time, x_pos])
   }
 
+  /* -------- hold：shift+左键给选中的 hold 加节点 -------- */
+
+  /**
+   * shift + 左键：在鼠标下那条 **已经选中** 的 hold 上插一个新节点。
+   *
+   * 只认选中的 hold（见 pick_selected_hold）：没选中就没有控制点，插了也看不出变化，
+   * 还会跟「在 hold 身上放 note」抢点击。
+   * 和放置流程也是两回事：放置中加节点仍然走右键（左键要留给收尾）。
+   *
+   * 返回 true 表示这次点击已经被消费掉（鼠标下有选中的 hold，或者已经提示过放不下），
+   * false 表示鼠标下没有选中的 hold，交给后面的正常逻辑（放置 / 拖拽）。
+   * */
+  private insert_node_under_pointer(): boolean {
+    const target = this.pick_selected_hold()
+    if (!target) return false
+    const hold = toRaw(target.obj) as INotes.hold
+    const nodes = hold_nodes(hold)
+    // 优先用吸附后的时间；段比网格还窄时吸附会被推到段外，这时退回没吸附的时间
+    const raw = Math.max(0, this.event_time(this.pointer.y))
+    const snapped = this.snap_time(raw)
+    const t = this.inside_span(nodes, snapped)
+      ? snapped
+      : this.inside_span(nodes, raw)
+        ? raw
+        : null
+    if (t === null) {
+      notify.error('新节点必须落在 hold 相邻两个节点之间。')
+      return true
+    }
+    // 插在哪一段：节点下标 i 属于第 i-1 段
+    const k = nodes.findIndex((n, i) => i > 0 && t > nodes[i - 1][0] && t < n[0])
+    const seg_i = k - 1
+    const x_pos = this.snap_x(this.drawer.pos_of(this.pointer.x))
+    if (!insert_hold_node(hold, seg_i, t, x_pos)) return true
+    // 撤销就是把这个节点再删掉：remove_hold_node 会把两段接回去，并保留前半段的 ease
+    this.diff.push_undo(() => remove_hold_node(hold, seg_i + 1))
+    this.diff.update_diff_counts()
+    this.chart.mark_changed()
+    this.drawer.refresh_hold(hold)
+    return true
+  }
+
+  /** 时间 t 是否严格落在 nodes 的某一段内部（两端都是开区间） */
+  private inside_span(nodes: [number, number][], t: number) {
+    for (let i = 1; i < nodes.length; i++) {
+      if (t > nodes[i - 1][0] && t < nodes[i][0]) return true
+    }
+    return false
+  }
+
   /* -------- hazard：四次左键 -------- */
 
   private place_hazard(time: number, x_pos: number) {
@@ -497,8 +605,16 @@ export class DiffEditor extends StopClass {
 
   private start_drag(target: IObjRef) {
     const in_selection = selected.value.some((s) => toRaw(s.obj) === toRaw(target.obj))
-    // 单独拖一个 hold / hazard 时把它选中：它们带控制点，选中后可以直接接着调
-    const solo = target.kind === 'hold' || target.kind === 'hazard'
+    /*
+     * 只有「选择模式」（没有选中任何物件类型）里单独拖一个 hold / hazard 才顺手把它选起来：
+     * 它们带控制点，选中后可以直接接着调。
+     *
+     * 正在放置别的物件类型时**不**选中它们：否则想放个 note，手一抖点到 hold 身上，
+     * 就会莫名其妙把它选起来（金色外框 + 蓝色控制点）还拖着走，原来选中的东西也跟着没了。
+     * 这种模式下要选 hold / hazard，用 Ctrl + 左键。
+     * */
+    const solo =
+      NoteType.tool === null && (target.kind === 'hold' || target.kind === 'hazard')
     let items: IObjRef[]
     if (in_selection) {
       items = selected.value.slice()
@@ -521,6 +637,7 @@ export class DiffEditor extends StopClass {
       delta_time: 0,
       delta_x: 0
     }
+    this.build_drag_ghost(items)
   }
 
   private update_drag() {
@@ -534,6 +651,7 @@ export class DiffEditor extends StopClass {
     this.drag.delta_time = dt
     this.drag.delta_x = dx
     for (const item of this.drag.items) apply_values(item.ref, item.base, dt, dx)
+    this.update_drag_ghost()
     this.diff.update_diff_counts()
   }
 
@@ -550,9 +668,74 @@ export class DiffEditor extends StopClass {
       this.diff.push_undo(() => refs.forEach((r, i) => reset_from_base(r, bases[i])))
       refs.forEach((r, i) => apply_values(r, bases[i], dt, dx))
     }
+    this.clear_drag_ghost()
     this.diff.update_diff_counts()
     this.chart.mark_changed()
     this.drag = { active: false, items: [], base_time: 0, delta_time: 0, delta_x: 0 }
+  }
+
+  /* ---------------- 拖动预览 ---------------- */
+
+  /**
+   * 建拖动预览：被拖的物件从池子里藏起来（drawer.hidden），改由这儿画一份半透明的。
+   *
+   * 物件的数据在拖动过程中本来就是实时改的，所以这层预览和松手后的结果是同一个东西；
+   * 半透明只是为了和「还没放下」的放置预览看起来一致。
+   * */
+  private build_drag_ghost(items: IObjRef[]) {
+    this.clear_drag_ghost()
+    for (const ref of items) {
+      const obj = toRaw(ref.obj)
+      const el = this.drawer.build_element(ref.kind, obj)
+      if (!el) continue
+      el.alpha = 0.6
+      this.drag_ghost.addChild(el)
+      this.drag_els.push({ kind: ref.kind, obj, el, sx: shape_sx(ref.kind, obj) })
+      this.drawer.hidden.add(obj)
+    }
+    if (!this.drag_els.length) return
+    // 池子里的原物件要立刻藏起来：暂停时 update() 不是每帧都跑（见 chart.on_update），
+    // 不主动刷这一次，原来那个就会僵在旧位置上和预览重叠
+    this.drawer.update()
+    this.update_drag_ghost()
+  }
+
+  /** 把预览摆到物件当前的位置（值在被拖动，所以它跟着鼠标走） */
+  private update_drag_ghost() {
+    const c = this.c
+    const m = this.m
+    for (const g of this.drag_els) {
+      /*
+       * hold 的黑线、hazard 的填充是烘在 Graphics 里的，形状按**建的时候**的 x 走，
+       * 所以横向一动就得重建一份，否则拖动时只有头/端点跟着走、中间那条线留在原地。
+       *
+       * 纯竖直拖动不用重建：形状里的 y 存的是相对起点的坐标，本来就与时间无关
+       * （base_y + time_offset 里 t0 会抵消，见 place_element），只改 g.y 就够了。
+       * */
+      const sx = shape_sx(g.kind, g.obj)
+      if (sx !== null && sx !== g.sx) {
+        const fresh = this.drawer.build_element(g.kind, g.obj)
+        if (fresh) {
+          fresh.alpha = 0.6
+          this.drag_ghost.addChildAt(fresh, this.drag_ghost.getChildIndex(g.el))
+          g.el.destroy({ children: true })
+          g.el = fresh
+          g.sx = sx
+        }
+      }
+      this.drawer.place_element(g.kind, g.el, g.obj, (g.obj as { time: number }).time, c, m)
+    }
+  }
+
+  /** 结束拖动：销毁预览，把池子里的原物件放回来 */
+  private clear_drag_ghost() {
+    if (!this.drag_els.length) return
+    for (const g of this.drag_els) {
+      this.drawer.hidden.delete(toRaw(g.obj))
+      g.el.destroy({ children: true })
+    }
+    this.drag_els = []
+    this.drawer.update()
   }
 
   /* ---------------- 拖拽控制点 ---------------- */
@@ -683,6 +866,12 @@ export class DiffEditor extends StopClass {
       return
     }
 
+    // 2. shift + 左键：点中已选中的 hold 时在它上面插一个节点（点不中就不拦截，走下面的正常逻辑）
+    if (e.button === 0 && e.shiftKey && !e.ctrlKey && this.insert_node_under_pointer()) {
+      this.redraw_overlay()
+      return
+    }
+
     const target = this.pick()
     if (e.ctrlKey) {
       if (target) NoteClipboard.toggle(target)
@@ -690,8 +879,13 @@ export class DiffEditor extends StopClass {
       this.redraw_overlay()
       return
     }
-    if (target) {
-      this.start_drag(target)
+    /*
+     * 抓住鼠标下的物件 = 拖动它。放置模式里 hold / hazard 不参与（见 grabbable）：
+     * 这样点在它们的响应区域里会落到下面的 place()，note 就能正常压在 ln 上。
+     * */
+    const grabbed = target && this.grabbable(target) ? target : null
+    if (grabbed) {
+      this.start_drag(grabbed)
       this.start_raw_time = this.event_time(this.pointer.y)
       this.start_raw_x = this.drawer.pos_of(this.pointer.x)
       return
@@ -969,6 +1163,9 @@ export class DiffEditor extends StopClass {
         .stroke({ width: 2, color: 0xffffff })
     }
 
+    // 拖动预览：物件的值在拖动时是实时改的，把预览摆到它们当前的位置
+    if (this.drag.active) this.update_drag_ghost()
+
     // 剪贴板预览：有内容时它顶掉普通的放置预览（模仿 sv 的 pending）
     this.rebuild_clip_ghost()
     this.clip_ghost.visible =
@@ -1118,6 +1315,18 @@ export class DiffEditor extends StopClass {
 
 /* ---------------- hold 的节点操作 ---------------- */
 
+/**
+ * 形状是烘死在 Graphics 里的物件（hold 的黑线、hazard 的填充）的横向基准。
+ *
+ * 拖动预览靠它判断「横向动了没有」：变了就得把元素重建一份，形状才会跟着走。
+ * 其余物件的形状不烘 x（就是个贴图，每帧改 x 就行），返回 null 表示不用管。
+ * */
+function shape_sx(kind: ObjKind, obj: IObjRef['obj']): number | null {
+  if (kind === 'hold') return (obj as INotes.hold).x_pos
+  if (kind === 'hazard') return (obj as INotes.hazard).x1
+  return null
+}
+
 /** hold 的所有节点：[头, ...每段终点] */
 export function hold_nodes(hold: INotes.hold): [number, number][] {
   return [[hold.time, hold.x_pos], ...hold.segment.map((s) => [s[0], s[1]] as [number, number])]
@@ -1131,6 +1340,22 @@ function set_hold_node(hold: INotes.hold, i: number, t: number, x: number) {
     hold.segment[i - 1][0] = t
     hold.segment[i - 1][1] = x
   }
+}
+
+/**
+ * 在第 i 段里插一个新节点（成为下标 i+1 的节点），把这一段一分为二。
+ *
+ * 时间必须严格落在这一段的两个端点之间，否则返回 false（hold 的节点时间必须一个比一个晚）。
+ * 两半都沿用原来那一段的 ease：插点本身尽量不改变已有的曲线形状，
+ * 想让曲线变形再拖这个新节点即可。
+ * */
+export function insert_hold_node(hold: INotes.hold, i: number, t: number, x: number): boolean {
+  const seg = hold.segment[i]
+  if (!seg) return false
+  const prev_t = i === 0 ? hold.time : hold.segment[i - 1][0]
+  if (!(t > prev_t && t < seg[0])) return false
+  hold.segment.splice(i, 0, [t, x, seg[2] ?? 0])
+  return true
 }
 
 /** 移除第 i 个节点（头/尾/中间都能删），把相邻两段接起来 */

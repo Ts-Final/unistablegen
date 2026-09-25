@@ -215,6 +215,14 @@ export class DiffDrawer extends StopClass {
   background: Container
   /** 竖直分列网格（编辑模式下用，垫在物件下面） */
   grid: Container
+  /**
+   * 正在被拖动的物件（原始对象）。
+   *
+   * 拖动时编辑器会用一层半透明的预览代表它们（见 edit-drawer 的 drag_ghost），
+   * 所以这里每帧把这些物件的池子元素 visible 关掉。放在 update() 里逐帧写，
+   * 池子重建出来的新元素也会跟着藏住。
+   * */
+  hidden = new Set<object>()
 
   constructor(diff: Chart_diff, sizing: { total_width: number }) {
     super()
@@ -664,29 +672,42 @@ export class DiffDrawer extends StopClass {
     const c = this.chart.audio.current_ms
     const m = Storage.computes.mul.value
     const nh = Storage.settings.note_height
+    const hidden = this.hidden
 
     this.drawers.note.update((s, n) => {
+      s.visible = !hidden.has(n)
       s.x = this.x_of(n.x_pos)
       s.y = this.get_y(n.time, c, m, nh)
     })
     this.drawers.wide.update((s, n) => {
+      s.visible = !hidden.has(n)
       s.y = this.get_y(n.time, c, m, nh)
     })
     this.drawers.hold_head.update((s, h) => {
+      s.visible = !hidden.has(h)
       s.x = this.x_of(h.x_pos)
       s.y = this.get_y(h.time, c, m, nh)
     })
     this.drawers.chip.update((s, k) => {
+      s.visible = !hidden.has(k)
       s.x = this.x_of(k.x_pos)
       s.y = this.get_y_line(k.time, c, m)
     })
     this.drawers.flick.update((s, k) => {
+      s.visible = !hidden.has(k)
       s.x = this.x_of(k.x_pos)
       s.y = this.get_y_line(k.time, c, m)
     })
 
-    this.drawers.hold_body.update((g, h) => (g.y = this.time_offset(h.time, c, m)))
-    this.drawers.hazard.update((g, h) => (g.y = this.time_offset(h.time, c, m)))
+    // hold 的黑线 / hazard 的填充是一整块 Graphics，也要跟着一起藏
+    this.drawers.hold_body.update((g, h) => {
+      g.visible = !hidden.has(h)
+      g.y = this.time_offset(h.time, c, m)
+    })
+    this.drawers.hazard.update((g, h) => {
+      g.visible = !hidden.has(h)
+      g.y = this.time_offset(h.time, c, m)
+    })
 
     // 小节线以时间点为中线，正好从 note 中间穿过
     this.drawers.beat.update(

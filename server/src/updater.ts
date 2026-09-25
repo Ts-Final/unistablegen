@@ -6,6 +6,7 @@ import { Readable } from "node:stream"
 import { pipeline } from "node:stream/promises"
 import { file_paths, IS_DEV } from "./file_path.js"
 import { SERVER_VERSION } from "./version.js"
+import { log_error, short_error } from "./log.js"
 import type { IUpdateCheck, IUpdateResult, IVersionPair } from "../../type/update.js"
 
 /**
@@ -148,7 +149,9 @@ async function fetch_latest(frontend_version: string): Promise<IUpdateCheck> {
       signal: AbortSignal.timeout(CHECK_TIMEOUT)
     })
   } catch (e) {
-    return fail(`连不上 GitHub：${msg(e)}`)
+    // fetch 失败只有一句 "fetch failed"，真正的原因在 cause 里，别丢了
+    log_error("update", e, { step: "check-update", url: LATEST_API })
+    return fail(`连不上 GitHub：${short_error(e)}`)
   }
 
   if (res.status === 404) return fail("仓库里还没有发布任何 Release")
@@ -256,8 +259,9 @@ export async function install_frontend_update(frontend_version: string): Promise
       await fsp.rm(zip, { force: true }).catch(() => {})
     }
   } catch (e) {
-    console.error("[update] 更新前端页面失败：", e)
-    return { ok: false, reason: `更新失败：${msg(e)}` }
+    // 解压 / 换目录 / 落盘出错都走这里，cause 链一起打到 CLI 上
+    log_error("update", e, { step: "install-frontend", page: file_paths.page })
+    return { ok: false, reason: `更新失败：${short_error(e)}` }
   } finally {
     installing = false
   }
@@ -265,12 +269,19 @@ export async function install_frontend_update(frontend_version: string): Promise
 
 /** 下载到文件（先落到临时文件，成功了才改名，避免半截文件被当成 zip） */
 async function download(url: string, dest: string): Promise<void> {
-  const res = await fetch(url, {
-    redirect: "follow",
-    headers: { "user-agent": "unistablegen" },
-    signal: AbortSignal.timeout(DOWNLOAD_TIMEOUT)
-  })
-  if (!res.ok || !res.body) throw new Error(`下载失败：HTTP ${res.status}`)
+  let res: Response
+  try {
+    res = await fetch(url, {
+      redirect: "follow",
+      headers: { "user-agent": "unistablegen" },
+      signal: AbortSignal.timeout(DOWNLOAD_TIMEOUT)
+    })
+  } catch (e) {
+    // 这里抛出去会被 install 那边再记一次（信息更全），所以这里只把错因带进 message
+    log_error("update", e, { step: "download", url })
+    throw new Error(`下载 page.zip 失败：${short_error(e)}`)
+  }
+  if (!res.ok || !res.body) throw new Error(`下载 page.zip 失败：HTTP ${res.status}`)
 
   const part = `${dest}.part`
   try {

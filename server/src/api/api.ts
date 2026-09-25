@@ -9,6 +9,7 @@ import { file_paths } from "../file_path.js"
 import { browser_status } from "../open-browser.js"
 import { broadcast } from "../alive.js"
 import { check_update, install_frontend_update } from "../updater.js"
+import { log_error } from "../log.js"
 import type { External } from "../../../type/external.js"
 
 /**
@@ -246,7 +247,7 @@ router.post("/check-update", async (req: Request, res: Response): Promise<void> 
   try {
     res.json(await check_update(fe))
   } catch (e) {
-    console.error("[check-update] 失败：", e)
+    log_error("check-update", e, { frontend_version: fe })
     res.status(500).json({ error: e instanceof Error ? e.message : String(e) })
   }
 })

@@ -12,7 +12,14 @@
  * */
 import { computed, ref, watch } from 'vue'
 import type { ISkinName } from '@type/ipc.ts'
-import { NoteType, TOOLS, type NoteVariant, type Tool } from '@core/misc/note-type.ts'
+import {
+  NoteType,
+  TOOLS,
+  pick_flick,
+  pick_tool,
+  pick_variant,
+  type NoteVariant
+} from '@core/misc/note-type.ts'
 import { NoteClipboard } from '@core/misc/note-clipboard.ts'
 import { chart_api } from '@core/chart/chart-api.ts'
 import { flick_skin } from '@core/chart/drawer.ts'
@@ -20,42 +27,17 @@ import { utils } from '@core/utils.ts'
 
 const selected = NoteClipboard.selected
 
-function toggle_tool(key: Tool) {
-  const same = NoteType.tool === key
-  NoteType.tool = same ? null : key
-  // 第一行点 note 就是「普通 note」，细分类型跟着归位（否则选过 ex 就回不到普通了）
-  if (!same && key === 'note') NoteType.note_variant = 'normal'
-}
-
 /** 第二行里 note 的三个细分（normal 由第一行的 note 负责） */
 const variants: { key: NoteVariant; label: string }[] = [
   { key: 'ex', label: 'ex' },
   { key: 'critical', label: 'critical' },
   { key: 'wide', label: 'wide' }
 ]
-function pick_variant(v: NoteVariant) {
-  // 和 sv 的 set_width 一样：再点一次已经选中的那个 = 取消，进入选择状态
-  if (NoteType.tool === 'note' && NoteType.note_variant === v) {
-    NoteType.tool = null
-    return
-  }
-  NoteType.tool = 'note'
-  NoteType.note_variant = v
-}
 
 const flick_dirs: { dir: 0 | 1; label: string }[] = [
   { dir: 0, label: '左滑' },
   { dir: 1, label: '右滑' }
 ]
-function pick_flick(dir: 0 | 1) {
-  // 同上：重复点同一个方向就回到选择状态
-  if (NoteType.tool === 'flick' && NoteType.flick_dir === dir) {
-    NoteType.tool = null
-    return
-  }
-  NoteType.tool = 'flick'
-  NoteType.flick_dir = dir
-}
 
 /** 当前选中类型要显示哪张贴图；hazard 用文字 */
 const preview = computed<{ name: ISkinName } | { text: string } | null>(() => {
@@ -97,7 +79,7 @@ function selected_range() {
         :key="t.key"
         :class="NoteType.tool === t.key ? 'chosen' : ''"
         class="note-width-btn"
-        @click="toggle_tool(t.key)"
+        @click="pick_tool(t.key)"
       >
         {{ t.label }}
       </div>
@@ -138,7 +120,7 @@ function selected_range() {
         {{ preview.text }}
       </div>
       <div v-else-if="preview_src" class="note-preview-text">缺少贴图</div>
-      <div v-else class="note-preview-text">未选择类型</div>
+      <div v-else class="note-preview-text">__类型</div>
     </div>
 
 

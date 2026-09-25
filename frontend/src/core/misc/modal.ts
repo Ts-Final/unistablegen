@@ -5,6 +5,7 @@ import ShowInformation from '@components/modals/show-information.vue'
 import AskIdModal from '@components/modals/ask-id-modal.vue'
 import SettingsModal from '@components/modals/settings-modal.vue'
 import ShortcutModal from '@components/modals/shortcut-modal.vue'
+import H2PModal from '@components/modals/h2p-modal.vue'
 import VersionsModal from '@components/modals/versions-modal.vue'
 import CreditsModal from '@components/modals/credits-modal.vue'
 import IExporterModal from '@components/modals/iexporter-modal.vue'
@@ -24,6 +25,8 @@ export class modal<T extends Component> {
   static AskIdModal = new modal(AskIdModal)
   static SettingModal = new modal(SettingsModal)
   static ShortcutModal = new modal(ShortcutModal)
+  /** how to play：左右分栏的说明手册 */
+  static H2PModal = new modal(H2PModal)
   static VersionsModal = new modal(VersionsModal)
   static CreditsModal = new modal(CreditsModal)
   static IExporterModal = new modal(IExporterModal)

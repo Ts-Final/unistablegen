@@ -5,7 +5,7 @@ import { Storage } from '@core/storage.ts'
 import { modal } from './modal'
 import { notify } from './notify'
 import { NoteClipboard } from './note-clipboard'
-import { NoteType } from './note-type'
+import { NoteType, pick_flick, pick_tool, pick_variant } from './note-type'
 
 /** 已注册的快捷键功能名 */
 const functions = [
@@ -257,34 +257,20 @@ new ShortCuts('settings', 'F2', () => {
 /** 打开导入/导出（对应 sv 的 'iexport'，默认 p）；它在编辑器里才用得到 Chart.current */
 new ShortCuts('iexport', 'p', () => in_editor() && modal.IExporterModal.show({}))
 
-/* 放置什么物件 */
+/* 放置什么物件。
+   和 fn-note 面板一样：再按一次同一个类型 = 取消选择，进入选择模式（此时拖动是框选）。 */
 new ShortCuts('select', '0', () => (NoteType.tool = null))
-new ShortCuts('tool-note', '1', () => (NoteType.tool = 'note'))
-new ShortCuts('tool-hold', '2', () => (NoteType.tool = 'hold'))
-new ShortCuts('tool-hazard', '3', () => (NoteType.tool = 'hazard'))
-new ShortCuts('tool-chip', '4', () => (NoteType.tool = 'chip'))
-new ShortCuts('tool-flick', '5', () => (NoteType.tool = 'flick'))
+new ShortCuts('tool-note', '1', () => pick_tool('note'))
+new ShortCuts('tool-hold', '2', () => pick_tool('hold'))
+new ShortCuts('tool-hazard', '3', () => pick_tool('hazard'))
+new ShortCuts('tool-chip', '4', () => pick_tool('chip'))
+new ShortCuts('tool-flick', '5', () => pick_tool('flick'))
 
 
-new ShortCuts('n-ex', 'q', () => {
-  NoteType.tool = 'note'
-  NoteType.note_variant = 'ex'
-})
-new ShortCuts('n-critical', 'w', () => {
-  NoteType.tool = 'note'
-  NoteType.note_variant = 'critical'
-})
-new ShortCuts('n-wide', 'e', () => {
-  NoteType.tool = 'note'
-  NoteType.note_variant = 'wide'
-})
+new ShortCuts('n-ex', 'q', () => pick_variant('ex'))
+new ShortCuts('n-critical', 'w', () => pick_variant('critical'))
+new ShortCuts('n-wide', 'e', () => pick_variant('wide'))
 
 /* flick 的滑动方向（A 在左、D 在右，顺手） */
-new ShortCuts('flick-left', 'r', () => {
-  NoteType.tool = 'flick'
-  NoteType.flick_dir = 0
-})
-new ShortCuts('flick-right', 't', () => {
-  NoteType.tool = 'flick'
-  NoteType.flick_dir = 1
-})
+new ShortCuts('flick-left', 'r', () => pick_flick(0))
+new ShortCuts('flick-right', 't', () => pick_flick(1))

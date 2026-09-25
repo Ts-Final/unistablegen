@@ -35,6 +35,10 @@ function toDate(y: string | number, m: string | number, d: string | number) {
       <div class="build-content-title">Bug修复</div>
       <slot name="bugs"></slot>
     </div>
+    <div v-if="$slots.server" class="build-content pointed-list">
+      <div class="build-content-title">后端更新</div>
+      <slot name="server"></slot>
+    </div>
     <div v-if="$slots.qol" class="build-content pointed-list">
       <div class="build-content-title">优化</div>
       <slot name="qol"></slot>

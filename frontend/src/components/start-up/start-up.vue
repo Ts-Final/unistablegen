@@ -164,6 +164,7 @@ function detail(c: IChartSummary) {
         <div class="importer">
           <a-button2 msg="导入曲目" @click="import_chart" />
           <a-button2 msg="设置" @click="modal.SettingModal.show({})" />
+          <a-button2 msg="使用说明" @click="modal.H2PModal.show({})" />
         </div>
       </div>
       <div class="charts-wrapper">

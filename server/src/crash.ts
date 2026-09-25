@@ -2,6 +2,7 @@ import fs from "node:fs"
 import path from "node:path"
 import readline from "node:readline"
 import { IS_PACKAGED } from "./file_path.js"
+import { format_error } from "./log.js"
 
 /**
  * 崩溃兜底。
@@ -11,20 +12,13 @@ import { IS_PACKAGED } from "./file_path.js"
  * 做法是：打印 -> 追加写一份 crash.log -> 等用户按回车 -> 再退出。
  *
  * 开发时（终端是 IDE/命令行开着的那种）不做等待，stack 直接就在终端里。
+ *
+ * 错误文本交给 log.ts 的 format_error：它会把 cause 链一起写出来
+ * （fetch failed 这种，错因全在 cause 里，只打顶层等于没打）。
  * */
 
 /** 等按键的最长时间，避免没有 stdin 时卡死 */
 const HOLD_MS = 5 * 60_000
-
-function format_error(e: unknown): string {
-  if (e instanceof Error) return e.stack ?? `${e.name}: ${e.message}`
-  if (typeof e === "string") return e
-  try {
-    return JSON.stringify(e)
-  } catch {
-    return String(e)
-  }
-}
 
 /** 把崩溃信息追加到 exe 同目录的 crash.log，返回文件路径（写不了就返回 null） */
 function write_crash_log(text: string): string | null {
@@ -61,7 +55,8 @@ async function hold_console() {
  * @param kind 出错来源，比如 uncaughtException / EADDRINUSE
  */
 export async function crash(kind: string, e: unknown): Promise<never> {
-  const text = `[${kind}] ${format_error(e)}`
+  // crash.log 里要留 stack，CLI 上那句也一起带着，方便直接截图/复制
+  const text = `[${kind}] ${format_error(e, 0, true)}`
   console.error(`\n💥 ${text}`)
   if (IS_PACKAGED) {
     const log = write_crash_log(text)

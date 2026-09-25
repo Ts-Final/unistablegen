@@ -40,6 +40,41 @@ export function variant_to_type(v: NoteVariant): INotes.note['type'] {
   return 0
 }
 
+/* ---------------- 选类型（面板和快捷键共用同一份逻辑） ---------------- */
+
+/**
+ * 选中某个物件类型；**再选一次同一个就取消选择**，回到「选择模式」
+ * （此时在画布上拖动就是框选）。
+ *
+ * 面板和快捷键都走这里，两边的行为才不会跑偏。
+ * */
+export function pick_tool(key: Tool) {
+  const same = NoteType.tool === key
+  NoteType.tool = same ? null : key
+  // 第一行点 note 就是「普通 note」，细分类型跟着归位（否则选过 ex 就回不到普通了）
+  if (!same && key === 'note') NoteType.note_variant = 'normal'
+}
+
+/** 选中 note 的某个细分；再选一次已经选中的那个 = 取消选择 */
+export function pick_variant(v: NoteVariant) {
+  if (NoteType.tool === 'note' && NoteType.note_variant === v) {
+    NoteType.tool = null
+    return
+  }
+  NoteType.tool = 'note'
+  NoteType.note_variant = v
+}
+
+/** 选中 flick 的滑动方向；再选一次已经选中的那个 = 取消选择 */
+export function pick_flick(dir: 0 | 1) {
+  if (NoteType.tool === 'flick' && NoteType.flick_dir === dir) {
+    NoteType.tool = null
+    return
+  }
+  NoteType.tool = 'flick'
+  NoteType.flick_dir = dir
+}
+
 export function type_to_variant(t: INotes.note['type']): NoteVariant {
   if (t === 1) return 'critical'
   if (t === 2) return 'ex'

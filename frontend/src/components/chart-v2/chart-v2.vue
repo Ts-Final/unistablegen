@@ -118,9 +118,10 @@ async function close_chart() {
             <div class="h-menu-btn-text" @click="modal.IExporterModal.show({})">导入/导出</div>
             <div class="h-menu-btn-text" @click="save()">保存</div>
             <div class="h-menu-btn-text" @click="open_folder()">打开谱面文件夹</div>
-            <div class="h-menu-btn-text" @click="modal.SettingModal.show({})">设置</div>
+            <div class="h-menu-btn-text h-menu-btn-i-sep" @click="modal.SettingModal.show({})">设置</div>
             <div class="h-menu-btn-text" @click="refresh()">刷新</div>
-            <div class="h-menu-btn-text h-menu-btn-i-sep" @click="close_chart()">关闭文件</div>
+            <div class="h-menu-btn-text " @click="close_chart()">关闭文件</div>
+            <div class="h-menu-btn-text " @click="modal.H2PModal.show({})">使用说明</div>
           </div>
         </div>
         <div
