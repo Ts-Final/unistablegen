@@ -91,7 +91,7 @@ async function import_chart() {
   let inited = false
   if (!r.json) {
     try {
-      const data = chart_api.empty_final(def)
+      const data = chart_api.create_final(def)
       await chart_api.save_chart(id, data)
       inited = true
     } catch (e) {

@@ -2,6 +2,7 @@
 /**
  * 音符/物件选择面板（沿用 sv fn-note 的样式）。
  *
+ * 最上面是难度选择（和 sv 一样放 small-diff-choice），
  * 第一行是物件类型：note / hold / hazard / chip / flick；
  * 第二行**固定**显示细分项：ex / critical / wide / 左滑 / 右滑
  * （sv 里细分是跟着类型变的，这里按 uni 的用法铺成固定一行）。
@@ -24,6 +25,7 @@ import { NoteClipboard } from '@core/misc/note-clipboard.ts'
 import { chart_api } from '@core/chart/chart-api.ts'
 import { flick_skin } from '@core/chart/drawer.ts'
 import { utils } from '@core/utils.ts'
+import SmallDiffChoice from '@components/chart-v2/chart-tabs/small/small-diff-choice.vue'
 
 const selected = NoteClipboard.selected
 
@@ -72,6 +74,8 @@ function selected_range() {
 
 <template>
   <div class="notes">
+    <small-diff-choice />
+
     <div class="note-width">
       <span>类型</span>
       <div

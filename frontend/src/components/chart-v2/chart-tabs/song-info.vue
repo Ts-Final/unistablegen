@@ -72,7 +72,7 @@ async function import_sprite() {
       <div class="song-info-single">
         <div>画师 / 偏移</div>
         <div class="num-row">
-          <a-number-input v-model="song.refs.sprite" :step="1" />
+          <a-text-input v-model="song.refs.sprite" :step="1" />
           <a-number-input v-model="song.refs.offset" :step="1" />
         </div>
       </div>

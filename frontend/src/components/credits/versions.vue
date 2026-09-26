@@ -24,6 +24,12 @@ import Build from '@components/credits/build.vue'
       <div>添加了使用说明。</div>
       <div>添加了更新时弹出本窗口的功能。嘻嘻。</div>
     </Build>
+    <Build build="4" y="2026" m="9" d="26" title="0.1.3">
+      <template #bugs>
+        修复了画师名义被写成number的问题。
+      </template>
+      <div>添加了json导出。</div>
+    </Build>
   </div>
 </template>
 

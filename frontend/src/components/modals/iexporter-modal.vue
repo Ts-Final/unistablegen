@@ -6,10 +6,13 @@
  * */
 import SimpleModal from '@components/modals/simple-modal.vue'
 import AButton2 from '@components/a-elements/a-button2.vue'
-import { Chart } from '@core/chart/chart.ts'
-import { Invoke } from '@core/ipc-handler.ts'
-import { notify } from '@core/misc/notify.ts'
-import { modal } from '@core/misc/modal.ts'
+import {Chart} from '@core/chart/chart.ts'
+import {Invoke} from '@core/ipc-handler.ts'
+import {notify} from '@core/misc/notify.ts'
+import {modal} from '@core/misc/modal.ts'
+import Hide from "@components/a-elements/hide.vue"
+import {ref} from "vue"
+import ATextarea from "@components/a-elements/a-textarea.vue"
 
 const chart = Chart.$current
 
@@ -20,9 +23,9 @@ function open_preview() {
 
 /** 导入 pcd：ask-file 拿路径 -> open-file-utf 拿文本 -> 作为新难度加进来 */
 async function read_pcd() {
-  const fp = await Invoke('ask-file', { file: ['pcd文件', 'pcd'] })
+  const fp = await Invoke('ask-file', {file: ['pcd文件', 'pcd']})
   if (!fp) return
-  const text = await Invoke('open-file-utf', { path: fp })
+  const text = await Invoke('open-file-utf', {path: fp})
   if (!text) return notify.error('读取pcd失败……')
   chart.load_pcd(text)
 }
@@ -33,16 +36,54 @@ function write_pcd() {
     notify.error(`导出失败：${e instanceof Error ? e.message : String(e)}`)
   })
 }
+
+const info = ref(`{
+  "name": "${chart.song.name}",
+  "artist": "${chart.song.composer}",
+  "chart_id": "${chart.id}",
+  "perspective": ${chart.song.refs.perspective},
+  "chapter_sort": 0,
+  "jacket_designer": "${chart.song.refs.sprite}",
+  "bpm": "${chart.song.bpm}",
+  "version": 9999,
+  "original": false,
+  "loop_region": [${chart.song.refs.preview.join(",")}],
+  "enemy_character": "${chart.song.refs.enemy}",
+  "offset": ${chart.song.refs.offset},
+  "charts": [
+    {"level": ${chart.diff.meta.diff_num}, "note_designer": "${chart.diff.meta.charter}"}
+  ]
+}`)
+
+function write_info() {
+  Invoke("write-file", {
+    id: chart.id,
+    fname: "info.json",
+    data: info.value
+  }).then(() => Invoke("show-file", {id:chart.id, fname: "info.json"}))
+}
 </script>
 
 <template>
   <simple-modal size="1" title="导入/导出">
     <div class="vsc-loader-wrapper">
-      <div class="iexports">
-        <a-button2 msg="导入pcd" @click="read_pcd" />
-        <a-button2 msg="导出pcd" @click="write_pcd" />
-        <a-button2 class="wide" msg="谱面预览 / 导出png" @click="open_preview" />
-      </div>
+      <Hide :def="true" title="导入">
+        <div class="iexports">
+          <a-button2 msg="导入pcd" @click="read_pcd"/>
+        </div>
+      </Hide>
+      <Hide :def="true" title="导出">
+        <div class="iexports">
+          <a-button2 msg="导出pcd" @click="write_pcd"/>
+          <a-button2 msg="导出png" @click="open_preview"/>
+        </div>
+      </Hide>
+      <Hide title="JSON">
+        <div class="iexports">
+          <a-button2 msg="导出json" @click="write_info" class="wide"/>
+          <a-textarea v-model="info" class="wide" style="min-height: 15rem"/>
+        </div>
+      </Hide>
     </div>
   </simple-modal>
 </template>
@@ -64,6 +105,7 @@ function write_pcd() {
   width: 100%;
   overflow-y: auto;
 }
+
 .iexports {
   display: grid;
   /* sv 的栅格设定：1fr 1fr 1fr 1fr（那边一行是 3~4 个按钮） */
@@ -72,10 +114,7 @@ function write_pcd() {
   justify-items: center;
   gap: 5px;
 }
-/* uni 只留了导入/导出两个按钮，各占两格，铺开的宽度才和 sv 的四列一致 */
-.iexports > * {
-  grid-column: span 2;
-}
+
 /* 谱面预览一个人占一行 */
 .iexports > .wide {
   grid-column: span 4;

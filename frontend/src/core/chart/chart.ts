@@ -92,7 +92,7 @@ export class Chart extends StopClass {
     try {
       return await chart_api.fetch_chart(id)
     } catch {
-      const data = chart_api.empty_final(id)
+      const data = chart_api.create_final(id)
       await chart_api.save_chart(id, data)
       notify.normal('这张谱面还没有数据，已初始化一份空白谱面。')
       return data

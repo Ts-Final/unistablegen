@@ -73,16 +73,16 @@ export class ChartApi {
   }
 
   /** 一张空白谱面 */
-  empty_final(name = ''): INotes.final {
+  create_final(name = ''): INotes.final {
     return {
       song: {
         name,
         composer: '',
         perspective: 0,
-        enemy: '',
+        enemy: 'kanshi',
         bpm: '120',
         bpm_number: 120,
-        sprite: 0,
+        sprite: "",
         offset: 0,
         preview: [0, 0]
       },
@@ -96,7 +96,7 @@ export class ChartApi {
    * 这里统一补上，保证后续代码可以放心地直接用。
    */
   normalize(data: Partial<INotes.final> | null | undefined): INotes.final {
-    const base = this.empty_final()
+    const base = this.create_final()
     if (!data || typeof data !== 'object') return base
     return {
       song: { ...base.song, ...(data.song ?? {}) },
