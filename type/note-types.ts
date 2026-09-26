@@ -99,7 +99,7 @@ export namespace INotes {
     enemy: string
     bpm: string
     bpm_number: number
-    sprite: number
+    sprite: string
     offset: number
     preview: [number, number]
   }
