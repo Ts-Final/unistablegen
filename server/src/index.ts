@@ -158,7 +158,7 @@ function start_server(port: number, attempt = 1) {
 
     if (attempt === 1) {
       console.warn("");
-      console.warn(`⚠️  端口 ${port} 被占用：换成 ${next} 继续试（每 ${RETRY_MS / 1000} 秒一次，不会退出）。`);
+      console.warn(`⚠️  端口 ${port} 被占用：换成 ${next} 继续试（${RETRY_MS / 1000} 秒。`);
       console.warn(`   想固定端口：改 charts/config.json 里的 settings.port，或启动后在设置面板改「端口」。`);
     } else {
       console.warn(`⚠️  端口 ${port} 被占用（第 ${attempt} 次），换 ${next} 再试……`);

@@ -44,6 +44,8 @@ function default_settings(): ISettings {
     /** 分列上限（设置里可改） */
     max_column: 100,
     column_color: '#7afbff',
+    /** 50 = 旧版写死的栏中心透明度（0.5） */
+    column_alpha: 50,
 
     /** 谱面预览里默认全开（和 sv 的默认一致） */
     svg_shown_parts: {

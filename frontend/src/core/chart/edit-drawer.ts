@@ -5,7 +5,6 @@ import type { ISkinName } from '@type/ipc.ts'
 import { Storage } from '@core/storage.ts'
 import { GlobalStat } from '@core/globalStat.ts'
 import { StopClass } from '@core/misc/eventhub.ts'
-import { Skin } from '@core/misc/skin.ts'
 import { notify } from '@core/misc/notify.ts'
 import { NoteType, variant_to_type, type NoteVariant, type Tool } from '@core/misc/note-type.ts'
 import {
@@ -16,7 +15,7 @@ import {
   type ObjKind
 } from '@core/misc/note-clipboard.ts'
 import { ease_lerp } from './ease'
-import { DiffDrawer, flick_skin, tex_or_white } from './drawer'
+import { DiffDrawer, flick_size, flick_skin, tex_or_white } from './drawer'
 
 interface IRect {
   x1: number
@@ -30,6 +29,8 @@ interface IDragState {
   active: boolean
   items: { ref: IObjRef; base: number[] }[]
   base_time: number
+  /** 横向吸附的基准 x，见 start_drag / update_drag；整组都没有横向位置时是 null */
+  base_x: number | null
   delta_time: number
   delta_x: number
 }
@@ -146,6 +147,7 @@ export class DiffEditor extends StopClass {
     active: false,
     items: [],
     base_time: 0,
+    base_x: null,
     delta_time: 0,
     delta_x: 0
   }
@@ -181,6 +183,12 @@ export class DiffEditor extends StopClass {
       () => NoteType.tool,
       () => this.reset_pending()
     )
+    /*
+     * 播放/暂停切换时立刻重画一次。
+     * 播放中不画 pending，而暂停时主循环的时间没变就不再派发 audio-time-update，
+     * 不在这儿补一帧的话，要等鼠标动一下预览才会回来。
+     * */
+    this.watch(this.chart.audio.refs.paused, () => this.redraw_overlay())
     this.add_stop(() => {
       // 编辑器在拖动中途被停掉的话，别让那些物件一直藏在池子里
       this.clear_drag_ghost()
@@ -292,9 +300,9 @@ export class DiffEditor extends StopClass {
       case 'flick': {
         // 宽度和贴图一样按原始比例算，选中框才会和画出来的 flick 等宽
         const o = ref.obj as INotes.flick
-        const h = Storage.settings.flick_height
-        const tex = tex_or_white(flick_skin(o.to))
-        const w = tex.height ? h * (tex.width / tex.height) : h
+        const size = flick_size(tex_or_white(flick_skin(o.to)))
+        const w = size.width
+        const h = size.height
         return {
           x1: d.x_of(o.x_pos) - w / 2,
           y1: d.get_y_line(o.time, c, m) - h / 2,
@@ -632,8 +640,11 @@ export class DiffEditor extends StopClass {
        * 结果就是物件和线永远保持原来那个时间差、怎么拖都吸不上去。
        * 用物件自己的时间当基准，它就会正好落在线上；
        * 多选时其余物件仍然是整体位移，相互之间的相对关系不变。
+       *
+       * 横向（base_x）同理，见 update_drag。
        * */
       base_time: (toRaw(target.obj) as { time: number }).time,
+      base_x: drag_anchor_x([target, ...items]),
       delta_time: 0,
       delta_x: 0
     }
@@ -647,7 +658,15 @@ export class DiffEditor extends StopClass {
     // 时间整体吸附，保持选中物件之间的相对关系
     const dt =
       this.snap_time(this.drag.base_time + (time_now - this.start_raw_time)) - this.drag.base_time
-    const dx = x_now - this.start_raw_x
+    /*
+     * 横向同理：以「被拖动的那个物件的中心」为基准吸到栏中心虚线上，
+     * 这样它才会正好落在线上；拿鼠标位置当基准的话，物件和网格之间原有的偏差会一直留着，
+     * 怎么拖都吸不上去。多选时其余物件仍然按同一个 dx 整体位移，相对关系不变。
+     *
+     * 整组都没有横向位置（只有 wide）时 base_x 是 null，dx 保持 0。
+     * */
+    const bx = this.drag.base_x
+    const dx = bx === null ? 0 : this.snap_x(bx + (x_now - this.start_raw_x)) - bx
     this.drag.delta_time = dt
     this.drag.delta_x = dx
     for (const item of this.drag.items) apply_values(item.ref, item.base, dt, dx)
@@ -671,7 +690,7 @@ export class DiffEditor extends StopClass {
     this.clear_drag_ghost()
     this.diff.update_diff_counts()
     this.chart.mark_changed()
-    this.drag = { active: false, items: [], base_time: 0, delta_time: 0, delta_x: 0 }
+    this.drag = { active: false, items: [], base_time: 0, base_x: null, delta_time: 0, delta_x: 0 }
   }
 
   /* ---------------- 拖动预览 ---------------- */
@@ -759,7 +778,8 @@ export class DiffEditor extends StopClass {
     const hd = this.handle_drag
     if (!hd) return
     const time = this.event_time(this.pointer.y)
-    const x_pos = clamp_pos(this.drawer.pos_of(this.pointer.x))
+    // 控制点也一样吸到栏中心（column 为 0 或按住 Alt 时 snap_x 自己会跳过）
+    const x_pos = this.snap_x(this.drawer.pos_of(this.pointer.x))
     if (hd.handle.kind === 'hold') {
       const hold = toRaw(hd.handle.ref.obj) as INotes.hold
       const nodes = hold_nodes(hold)
@@ -775,8 +795,10 @@ export class DiffEditor extends StopClass {
       const i = hd.handle.index
       // 边中点：时间不动，只按鼠标横向位移同步平移该边的两个 x
       if (i >= 4) {
-        const dx = this.drawer.pos_of(this.pointer.x) - hd.start_x
-        set_hazard_side(hz, i, clamp_pos(hd.base[0] + dx), clamp_pos(hd.base[1] + dx))
+        const raw_dx = this.drawer.pos_of(this.pointer.x) - hd.start_x
+        // 和拖动物件一个道理：以这条边自己的 x 为基准吸附，而不是拿鼠标位移当基准
+        const d = this.snap_x(hd.base[0] + raw_dx) - hd.base[0]
+        set_hazard_side(hz, i, clamp_pos(hd.base[0] + d), clamp_pos(hd.base[1] + d))
         this.drawer.refresh_hazard(hz)
         this.diff.update_diff_counts()
         return
@@ -1166,15 +1188,19 @@ export class DiffEditor extends StopClass {
     // 拖动预览：物件的值在拖动时是实时改的，把预览摆到它们当前的位置
     if (this.drag.active) this.update_drag_ghost()
 
+    // 播放中不显示 pending（跟着鼠标的待放置预览）：
+    // 谱面在往前走，鼠标下的预览一直在飘，既挡视线又落不准，停下来再看就够了
+    const playing = !this.chart.audio.paused
+
     // 剪贴板预览：有内容时它顶掉普通的放置预览（模仿 sv 的 pending）
     this.rebuild_clip_ghost()
     this.clip_ghost.visible =
-      this.has_clipboard && this.pointer.inside && !this.drag.active && !this.handle_drag
+      !playing && this.has_clipboard && this.pointer.inside && !this.drag.active && !this.handle_drag
     if (this.clip_ghost.visible) this.update_clip_ghost()
 
     // 放置预览
     this.ghost.visible =
-      this.pointer.inside && !this.drag.active && !this.handle_drag && !this.has_clipboard
+      !playing && this.pointer.inside && !this.drag.active && !this.handle_drag && !this.has_clipboard
     this.ghost_sprite.visible = false
     this.ghost_gfx.clear()
     if (!this.ghost.visible) return
@@ -1263,9 +1289,10 @@ export class DiffEditor extends StopClass {
       this.ghost_sprite.width = nh
       this.ghost_sprite.height = nh
     } else if (tool === 'flick') {
-      const fh = Storage.settings.flick_height
-      this.ghost_sprite.height = fh
-      this.ghost_sprite.width = fh * 1.5
+      // 和真正画出来的 flick 同一个函数：宽度完全由贴图比例决定
+      const size = flick_size(this.ghost_sprite.texture)
+      this.ghost_sprite.width = size.width
+      this.ghost_sprite.height = size.height
     } else {
       this.ghost_sprite.width = nw
       this.ghost_sprite.height = nh
@@ -1500,14 +1527,49 @@ function clamp_pos(v: number) {
   return Math.max(0, Math.min(100, v))
 }
 
-/** 当前要放置的物件应该显示哪张贴图（缺图时用白块兜底） */
+/** 当前要放置的物件应该显示哪张贴图（缺图时用白块兜底，和画布上的兜底是同一张） */
 function ghost_texture(tool: Tool, variant: NoteVariant): Texture {
   let name: ISkinName = 'note'
   if (tool === 'chip') name = 'chip'
   else if (tool === 'flick') name = flick_skin(NoteType.flick_dir)
   else if (tool === 'note' && variant === 'ex') name = 'exnote'
   else if (tool === 'note' && variant === 'critical') name = 'critical'
-  return Skin.getTexture(name) ?? Texture.WHITE
+  return tex_or_white(name)
+}
+
+/**
+ * 物件的横向「中心」（x_pos 单位），拖动时拿它当竖直分列吸附的基准（见 update_drag）。
+ *
+ * note / chip / flick 的 x_pos 就是贴图中心，hold 的是头部中心，直接用；
+ * hazard 的四个角里 x1~y2 都是 x，取左右两条边各自中点（hazard_mids）的平均当中心；
+ * wide 铺满整条轨道、没有横向位置，返回 null。
+ * */
+function anchor_x(ref: IObjRef): number | null {
+  switch (ref.kind) {
+    case 'note':
+    case 'chip':
+    case 'flick':
+    case 'hold':
+      return (toRaw(ref.obj) as { x_pos: number }).x_pos
+    case 'hazard': {
+      const mids = hazard_mids(toRaw(ref.obj) as INotes.hazard)
+      return (mids[0][1] + mids[1][1]) / 2
+    }
+    default:
+      return null
+  }
+}
+
+/**
+ * 整组拖动物件时用哪个 x 当吸附基准：优先被抓住的那个，
+ * 它没有横向位置（wide）就退而用组里第一个有的；全都没有就返回 null。
+ * */
+function drag_anchor_x(refs: IObjRef[]): number | null {
+  for (const r of refs) {
+    const v = anchor_x(r)
+    if (v !== null) return v
+  }
+  return null
 }
 
 /** 读取物件用于拖拽的基础值 */

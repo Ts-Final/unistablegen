@@ -33,8 +33,7 @@ function open_folder() {
       </div>
       <p></p>
       <div class="note">
-        缺图不影响编辑：渲染时会用白块代替。<br />
-        hold 与 note 共用 <code>note</code>，hazard 用纯红色所以不需要贴图。
+        缺图不影响编辑：渲染时会用白块代替。赞美大肥鱼！
       </div>
     </div>
     <template #footer>

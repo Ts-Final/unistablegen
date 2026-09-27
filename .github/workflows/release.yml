@@ -212,6 +212,7 @@ jobs:
           $lines = [System.Collections.Generic.List[string]]::new()
           $lines.Add('## unistablegen')
           $lines.Add('')
+          $lines.Add('*这个是ai写的release，具体更新内容请看下面versions的文件，不要看这个（*')
           $lines.Add('| 组件 | 版本 | 本次产物 |')
           $lines.Add('| --- | --- | --- |')
           $lines.Add("| 前端 frontend | ``$env:FE_VER`` | $(if ($env:FE -eq 'true') { '`page.zip`' } else { '—' }) |")

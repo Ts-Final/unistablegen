@@ -1,5 +1,6 @@
 import { notify } from './misc/notify'
 import type { IServerSocketMessage } from '@type/update.ts'
+import {ref} from "vue"
 
 /**
  * keep-alive 用的 websocket（server 靠它判断还有没有前端连着，没前端就自己退出）。
@@ -13,6 +14,7 @@ export const CheckAlive = {
   ws: null as WebSocket | null,
   /** 重连次数，用来算退避时间 */
   retry: 0,
+  dis: ref(false),
 
   start() {
     const ws = new WebSocket(`ws://${window.location.host}/api`)
@@ -20,12 +22,15 @@ export const CheckAlive = {
     ws.onopen = () => {
       console.log('Connection opened')
       this.alive = true
+      if (this.dis.value) notify.success("孩子们后端复活了！")
+      this.dis.value = false
       this.retry = 0
     }
     ws.onmessage = (ev: MessageEvent) => this.on_message(ev.data)
     ws.onerror = () => ws.close()
     ws.onclose = () => {
       this.alive = false
+      this.dis.value = true
       this.ws = null
       // 更新页面 / 重启 server 都会断一下，退避重连（最多 10 秒一次）
       const delay = Math.min(1000 * 2 ** this.retry, 10_000)

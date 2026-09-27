@@ -22,6 +22,7 @@ import { Chart } from '@core/chart/chart.ts'
 import { Storage, Version } from '@core/storage.ts'
 import { chart_api } from '@core/chart/chart-api.ts'
 import { Skin } from '@core/misc/skin.ts'
+import { flick_size, tex_or_white } from '@core/chart/drawer.ts'
 import { ease_lerp } from '@core/chart/ease.ts'
 
 const chart = Chart.$current
@@ -235,9 +236,8 @@ const flick_els = computed(() => {
   return diff.flick.map((n) => {
     const p = pos_of(n.time)
     const name: ISkinName = n.to === 0 ? 'flickL' : 'flickR'
-    const tex = Skin.getTexture(name)
-    const ratio = tex && tex.height ? tex.width / tex.height : 1.5
-    const w = h * ratio
+    // 宽度按贴图比例走，和编辑器里画出来的 flick 共用同一个换算（不写死宽度）
+    const { width: w } = flick_size(tex_or_white(name), h)
     return img_el(name, x_of(n.x_pos, p.col) - w / 2, p.y - h / 2, w, h)
   })
 })

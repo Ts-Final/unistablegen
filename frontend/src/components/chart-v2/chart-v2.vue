@@ -14,6 +14,7 @@ import { modal } from '@core/misc/modal.ts'
 import { notify } from '@core/misc/notify.ts'
 import { Invoke } from '@core/ipc-handler.ts'
 import '@components/miscellaneous/header.css'
+import {CheckAlive} from "@core/check-alive.ts"
 
 const chart = Chart.$current
 const active = GlobalStat.refs.chart_tab
@@ -105,13 +106,21 @@ async function close_chart() {
   document.title = 'unistablegen'
   GlobalStat.route.change('start')
 }
+
+const server_disconnected = CheckAlive.dis
 </script>
 
 <template>
   <div class="chart-v2-wrapper" @wheel.ctrl.prevent="on_wheel" @wheel.alt.prevent="on_wheel">
-    <div class="header-wrapper">
+    <div class="header-wrapper" :class="server_disconnected ? 'disconnected' :''">
       <div class="header-top">
         <img alt="unistablegen" class="header-yq" src="/icon.png" />
+        <div class="header-menu-ul" v-if="server_disconnected">
+          <div class="h-menu-btn-text">已断连！</div>
+          <div class="h-menu-btn-i disconnected">
+            <div class="h-menu-btn-text">已失去和后端的连接。所有工作将不会被保存。</div>
+          </div>
+        </div>
         <div class="header-menu-ul">
           <div class="h-menu-btn-text">工具</div>
           <div class="h-menu-btn-i">
@@ -158,5 +167,8 @@ async function close_chart() {
   position: relative;
   overflow: hidden;
   height: calc(100vh - 2rem);
+}
+.disconnected {
+  background: red !important;
 }
 </style>

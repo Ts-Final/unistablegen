@@ -40,7 +40,7 @@ const column = computed({
 
 const METERS = [4, 6, 8, 12, 16, 24, 32, 48, 64]
 /** 分列的快捷档位（和分音一样一排九个） */
-const COLUMNS = [0, 2, 3, 4, 5, 6, 8, 12, 16]
+const COLUMNS = [0, 2, 4, 5, 6, 8,10,  16]
 </script>
 
 <template>

@@ -27,6 +27,13 @@ export const SIDE_MARGIN = 50
 const SEP_LINE = 6
 
 /**
+ * 栏边界的透明度 = 设置里的透明度 × 这个比例。
+ *
+ * 栏边界永远比栏中心虚线淡（n 栏有 n+1 条边界，密得多），0.44 就是旧版写死的 0.22 / 0.5。
+ * */
+const BOUND_ALPHA_RATIO = 0.44
+
+/**
  * 一堆同类型元素的容器。
  * 每次重算可见区间时，只对「新出现/已消失」的元素做创建/销毁，避免全量重建。
  * */
@@ -114,6 +121,19 @@ function note_texture(note: INotes.note) {
 /** flick 的贴图按滑动方向区分：0 = 左滑，1 = 右滑 */
 export function flick_skin(to: 0 | 1): 'flickL' | 'flickR' {
   return to === 0 ? 'flickL' : 'flickR'
+}
+
+/**
+ * flick 的绘制尺寸：高度固定，宽度**只**由贴图比例算出来，任何地方都不写死宽度。
+ *
+ * 画布上的 flick、选中框、放置预览、整曲谱面预览都走这一个函数，传进来的也都是
+ * 同一张贴图（缺图时是 tex_or_white 的白块，1×1，比例正好是 1），
+ * 所以预览和真正落下来的 flick 永远一样大。
+ *
+ * @param height 绘制高度。默认取设置里的 flick 高度；整曲谱面预览按自己的比例缩放，会自己传。
+ * */
+export function flick_size(tex: Texture, height = Storage.settings.flick_height) {
+  return { width: (height * tex.width) / tex.height, height }
 }
 
 function note_tint(note: INotes.note) {
@@ -328,6 +348,7 @@ export class DiffDrawer extends StopClass {
     this.drawers.bottom_bpm.anchor.set(0.5, 0.5)
     this.drawers.bottom_bpm.x = this.sizing.total_width / 2
     this.drawers.bottom_bpm.y = SCREEN_HEIGHT - 30
+    this.apply_display_flags()
 
     // 注意顺序：轨道底色在最下面，然后 hazard、hold 身体、所有音符类；
     // 底部 bpm 区域（decoration）要盖住所有物件，bpm 文字再盖在它上面
@@ -363,6 +384,21 @@ export class DiffDrawer extends StopClass {
   }
 
   /* ---------------- 形状刷新 ---------------- */
+
+  /**
+   * 同步那些「只是显示 / 隐藏」的设置项。
+   *
+   * 底部 bpm 和右侧分音都是直接挂在 stage 上的固定元素（不在池子里），
+   * 设置改了它们不会自己重建，所以每次 rebuild_all 都要显式同步一次
+   * （设置 modal 关掉时会派发 scale-changed）。
+   *
+   * 注意改的是 container.visible，而不是 DrawerExtension.visible ——
+   * 后者只用来跳过每帧的坐标更新，藏起来的同时坐标会变馊。
+   */
+  apply_display_flags() {
+    this.drawers.bottom_bpm.visible = Storage.settings.show_bpm_bottom
+    this.drawers.tick_text.container.visible = Storage.settings.show_ticks
+  }
 
   /**
    * hold 的黑线与 hazard 的填充形状是画死在 Graphics 里的，
@@ -502,10 +538,9 @@ export class DiffDrawer extends StopClass {
     const tex = tex_or_white(flick_skin(f.to))
     const s = new Sprite({ texture: tex, label: `flick-${f.time}` })
     s.anchor.set(0.5, 0.5)
-    s.height = Storage.settings.flick_height
-    s.width = tex.height
-      ? Storage.settings.flick_height * (tex.width / tex.height)
-      : Storage.settings.flick_height
+    const size = flick_size(tex)
+    s.width = size.width
+    s.height = size.height
     s.x = this.x_of(f.x_pos)
     return s
   }
@@ -602,6 +637,9 @@ export class DiffDrawer extends StopClass {
    * - 每栏的中心画成虚线 —— pending 的**中心**就吸附在这里（共 column 个吸附点）；
    * - column 为 0 时什么都不画，也不吸附（见 edit-drawer 的 snap_x）。
    *
+   * 颜色和透明度都来自设置（column_color / column_alpha）。透明度为 0 时干脆不画，
+   * 省掉一层看不见的 Graphics。
+   *
    * 栏太窄时自动省线：宽度不到 3px 连边界都不画，不到 10px 就不画中心虚线，
    * 免得 100 栏把画布糊成一片。
    */
@@ -611,6 +649,8 @@ export class DiffDrawer extends StopClass {
     if (n <= 0) return
     const w = this.track_width / n
     const color = Storage.settings.column_color
+    const alpha = Math.max(0, Math.min(100, Storage.settings.column_alpha)) / 100
+    if (alpha <= 0) return
 
     // 每栏中心的虚线（真正的吸附位置）
     if (w >= 10) {
@@ -620,15 +660,15 @@ export class DiffDrawer extends StopClass {
         const x = this.track_left + (i + 0.5) * w
         for (let y = 0; y < SCREEN_HEIGHT; y += dash * 2) centers.rect(x - 0.5, y, 1, dash)
       }
-      centers.fill({ color, alpha: 0.5 })
+      centers.fill({ color, alpha })
       this.grid.addChild(centers)
     }
 
-    // 栏边界（含最左最右）
+    // 栏边界（含最左最右）：n 栏就有 n+1 条，比中心线密得多，所以固定按比例画得更淡
     if (w >= 3) {
       const bounds = new Graphics()
       for (let i = 0; i <= n; i++) bounds.rect(this.track_left + i * w - 0.5, 0, 1, SCREEN_HEIGHT)
-      bounds.fill({ color, alpha: 0.22 })
+      bounds.fill({ color, alpha: alpha * BOUND_ALPHA_RATIO })
       this.grid.addChild(bounds)
     }
   }
@@ -837,6 +877,8 @@ export class DiffDrawer extends StopClass {
     this.create_background()
     this.create_grid()
     this.create_decoration()
+    // 显隐类设置也要跟着重建
+    this.apply_display_flags()
     this.diff.force_fuck()
     this.force_recreate()
   }

@@ -81,7 +81,7 @@ onUnmounted(() => {
           <a-button2 msg="选择" @click="pick_browser()" />
         </div>
         <ds>
-          启动时 server 用它打开页面；留空就用系统默认浏览器（Edge？我要开始大声嘲笑了）
+          启动时 server 用它打开页面；留空就用系统默认浏览器（Edge？我要开始大声嘲笑了，此处插入sv笑话）
         </ds>
 
         <setting-header msg="界面与显示" />
@@ -116,7 +116,7 @@ onUnmounted(() => {
         <ds>轨道的宽度。你不会以为这个还会变吧？</ds>
         <div>note宽度 (px)</div>
         <a-number-input v-model="r.settings.note_width" class="in" min="10" />
-        <ds>note 贴图在轨道上的绘制宽度。（不过我真不知道他有多大，所以留设置给你们自己条吧）</ds>
+        <ds>note 贴图在轨道上的绘制宽度。（不过我真不知道他有多大，所以留设置给你们自己调吧。好像是1/10？）</ds>
         <div>note高度 (px)</div>
         <a-number-input v-model="r.settings.note_height" class="in" min="1" />
         <ds>note的高度（纵向），chip 的边长。</ds>
@@ -152,9 +152,21 @@ onUnmounted(() => {
           编辑面板里「竖直分列」能拉到多少栏。分列会把轨道横向平均分成 N 栏、在编辑画布上
           竖着画网格，待放置物件的中心会吸附到栏中心；0 栏表示不画网格也不吸附。
         </ds>
-        <div>网格线颜色</div>
+        <div>分列线颜色</div>
         <a-color-input v-model="r.settings.column_color" />
-        <ds>竖直分列网格的颜色（栏边界是实线，栏中心是虚线，也就是吸附位置）。</ds>
+        <div>分列线透明度</div>
+        <a-number-input
+          v-model="r.settings.column_alpha"
+          class="in"
+          max="100"
+          min="0"
+          step="1"
+        />
+        <ds>
+          竖直分列网格线的颜色和透明度（0~100，0 就是不画网格线）。栏边界是 n+1 条、比栏中心
+          的虚线密得多，所以固定画得更淡一些。<br>
+          哈哈这个是透明度不是不透明度。别搞错了（
+        </ds>
         <div>小节号或拍号</div>
         <a-checkbox2 v-model="r.settings.bar_or_section" />
         <div>Beat从0开始</div>

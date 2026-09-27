@@ -75,6 +75,11 @@ export interface ISettings {
   max_column: number
   /** 网格线的颜色 */
   column_color: string
+  /**
+   * 网格线的透明度，0~100。
+   * 栏中心虚线用的就是这个值；栏边界线更密，会按比例画得更淡（见 drawer 的 create_grid）。
+   * */
+  column_alpha: number
 
   /* ---- 谱面预览 ---- */
   /** 谱面预览（导出 png）里显示哪些部分 */

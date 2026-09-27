@@ -88,12 +88,10 @@ async function import_chart() {
    * 没有自带 chart.json 时，这里生成一份空白数据存回去，
    * 谱面才会出现在列表里（uni 的索引是以 chart.json 为准的）。
    * */
-  let inited = false
   if (!r.json) {
     try {
       const data = chart_api.create_final(def)
       await chart_api.save_chart(id, data)
-      inited = true
     } catch (e) {
       modal.ShowInformationModal.show({
         msg: `<b>初始化谱面数据失败</b><br>charts/${id}/<br><br>${
@@ -105,11 +103,6 @@ async function import_chart() {
   }
 
   await GlobalStat.update_all_chart()
-  modal.ShowInformationModal.show({
-    msg: inited
-      ? `已导入到 charts/${id}/，并初始化了一份空白谱面。<br>直接点进去就能开始写啦。`
-      : `已导入到 charts/${id}/（含自带的 chart.json）。`
-  })
 }
 
 function open_proj(id: string) {
