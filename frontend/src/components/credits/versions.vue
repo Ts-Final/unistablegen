@@ -30,6 +30,18 @@ import Build from '@components/credits/build.vue'
       </template>
       <div>添加了json导出。</div>
     </Build>
+    <Build build="5" y="2026" m="9" d="27" title="0.1.4">
+      <template #bugs>
+        <div>修复了flick在预览时宽度不对的问题。</div>
+        <div>修复了播放时仍然会显示pending的问题。</div>
+        <div>修改了一些setting的措辞。虽然很多都是大肥鱼写的。。。</div>
+        <div>现在hazard不再参与线密度的计算了。</div>
+      </template>
+      <div>添加了websocket断链的提示。现在如果断了会出大红（视觉上</div>
+      <div>添加了3d斜轨模式，默认是G键启用</div>
+      <div>我新画了note皮肤，同时wide不再与note共用而是独立贴图了。</div>
+      <div>调整了note大小的默认设置。</div>
+    </Build>
   </div>
 </template>
 

@@ -6,6 +6,7 @@ import { DiffDrawer } from '@core/chart/drawer.ts'
 import { DiffEditor } from '@core/chart/edit-drawer.ts'
 import { Storage } from '@core/storage.ts'
 import { EventHub } from '@core/misc/eventhub.ts'
+import {enable3d} from "@core/misc/enable3d.ts"
 
 const chart = Chart.$current
 const diff = chart.diff
@@ -49,6 +50,8 @@ function on_wheel(e: WheelEvent) {
 function Sign(v: number) {
   return v > 0 ? 1 : v < 0 ? -1 : 0
 }
+
+const ref3d = enable3d.enabled
 </script>
 
 <template>
@@ -57,6 +60,7 @@ function Sign(v: number) {
     :style="{ width: Storage.settings.track_width + 'px' }"
     class="pixi-container"
     @wheel.prevent="on_wheel"
+    :class="ref3d ? 'enable-3d' : ''"
   />
 </template>
 
@@ -65,10 +69,16 @@ function Sign(v: number) {
    并且会跟着窗口一起被压缩（不要给 flex-shrink: 0） */
 .pixi-container {
   position: relative;
+  perspective: 300px;
 }
 
 .chart-main .pixi-container canvas {
   position: absolute;
   bottom: 0;
+  transform-origin: center calc(100vh - 100px);
+  transition: transform 0.3s ease;
+}
+.pixi-container.enable-3d  canvas {
+  transform: rotateX(30deg) translateY(-100px);
 }
 </style>

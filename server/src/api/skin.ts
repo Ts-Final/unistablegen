@@ -12,7 +12,7 @@ const skin_path = file_paths.skin
  *   GET /api/skin/note       -> skin/note.png   (或 .jpg/.webp/...)
  *   GET /api/skin/note.png   -> skin/note.png
  * 带后缀只是给前端/pixi 提示格式用的，服务端仍以 find 的结果为准。
- * 可用的名字见 type/ipc.ts 的 ISkinName。
+ * 可用的名字见 type/ipc.ts 的 ISkinName（wide 用单独的一张 wide 贴图）。
  */
 router.get("/:name", async (req, res) => {
   // 去掉扩展名，只留资源名

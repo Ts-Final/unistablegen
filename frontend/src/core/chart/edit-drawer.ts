@@ -5,6 +5,7 @@ import type { ISkinName } from '@type/ipc.ts'
 import { Storage } from '@core/storage.ts'
 import { GlobalStat } from '@core/globalStat.ts'
 import { StopClass } from '@core/misc/eventhub.ts'
+import { enable3d } from '@core/misc/enable3d.ts'
 import { notify } from '@core/misc/notify.ts'
 import { NoteType, variant_to_type, type NoteVariant, type Tool } from '@core/misc/note-type.ts'
 import {
@@ -31,8 +32,22 @@ interface IDragState {
   base_time: number
   /** 横向吸附的基准 x，见 start_drag / update_drag；整组都没有横向位置时是 null */
   base_x: number | null
+  /** 按下鼠标时的画布坐标 + 是否已经越过拖动阈值（防抖，见 DRAG_THRESHOLD） */
+  origin: { x: number; y: number }
+  moved: boolean
   delta_time: number
   delta_x: number
+}
+
+/** 拖动控制点的状态 */
+interface IHandleDrag {
+  handle: IHandle
+  base: number[]
+  /** 按下鼠标时的 x_pos，给「整条边一起平移」算位移用 */
+  start_x: number
+  /** 按下鼠标时的画布坐标 + 是否已经越过拖动阈值（防抖，见 DRAG_THRESHOLD） */
+  origin: { x: number; y: number }
+  moved: boolean
 }
 
 /**
@@ -88,6 +103,14 @@ interface IHandle {
 
 const HANDLE_RADIUS = 6
 const HANDLE_HIT = 10
+/**
+ * 拖动阈值（px）：鼠标离开按下的位置超过这么多，才算真的开始拖动。
+ *
+ * 少了它的话，点一下物件时那 1~2px 的手抖也会立刻走一遍吸附 ——
+ * 物件会「啪」地跳到栏中心、时间也会跳到最近的拍点上（看着就像点一下它就自己动了）。
+ * 和 Windows 拿来区分单击 / 拖动的 4px 是同一个意思。
+ * */
+const DRAG_THRESHOLD = 4
 /** 选 x2 / y2 时 hazard 预览的厚度（px），让位置好辨认 */
 const HAZARD_PREVIEW_THICKNESS = 4
 
@@ -148,10 +171,12 @@ export class DiffEditor extends StopClass {
     items: [],
     base_time: 0,
     base_x: null,
+    origin: { x: 0, y: 0 },
+    moved: false,
     delta_time: 0,
     delta_x: 0
   }
-  private handle_drag: { handle: IHandle; base: number[]; start_x: number } | null = null
+  private handle_drag: IHandleDrag | null = null
   private hold_pending: IHoldPending = { active: false, time: 0, x_pos: 0, nodes: [] }
   private hazard_pending: IHazardPending = { step: 0, time: 0, x1: 0, x2: 0, end: 0, y1: 0 }
   private band = { active: false, x: 0, y: 0 }
@@ -184,11 +209,12 @@ export class DiffEditor extends StopClass {
       () => this.reset_pending()
     )
     /*
-     * 播放/暂停切换时立刻重画一次。
-     * 播放中不画 pending，而暂停时主循环的时间没变就不再派发 audio-time-update，
+     * 播放状态 / 3D 视角切换时立刻重画一次。
+     * 这两种情况下都不画 pending，而暂停时主循环的时间没变就不再派发 audio-time-update，
      * 不在这儿补一帧的话，要等鼠标动一下预览才会回来。
      * */
     this.watch(this.chart.audio.refs.paused, () => this.redraw_overlay())
+    this.watch(enable3d.enabled, () => this.redraw_overlay())
     this.add_stop(() => {
       // 编辑器在拖动中途被停掉的话，别让那些物件一直藏在池子里
       this.clear_drag_ghost()
@@ -645,14 +671,33 @@ export class DiffEditor extends StopClass {
        * */
       base_time: (toRaw(target.obj) as { time: number }).time,
       base_x: drag_anchor_x([target, ...items]),
+      origin: { x: this.pointer.x, y: this.pointer.y },
+      moved: false,
       delta_time: 0,
       delta_x: 0
     }
     this.build_drag_ghost(items)
   }
 
+  /**
+   * 防抖：鼠标离按下时的位置是否已经超过拖动阈值。
+   *
+   * 没过阈值就什么值都不动（见 update_drag / update_handle_drag），
+   * 这样「点一下」不会被当成拖动，物件也就不会因为手抖跳一下。
+   * */
+  private past_drag_threshold(origin: { x: number; y: number }) {
+    const dx = this.pointer.x - origin.x
+    const dy = this.pointer.y - origin.y
+    return dx * dx + dy * dy >= DRAG_THRESHOLD * DRAG_THRESHOLD
+  }
+
   private update_drag() {
     if (!this.drag.active) return
+    // 刚按下还没挪开：先别算位移，免得单击也触发吸附
+    if (!this.drag.moved) {
+      if (!this.past_drag_threshold(this.drag.origin)) return
+      this.drag.moved = true
+    }
     const time_now = this.event_time(this.pointer.y)
     const x_now = this.drawer.pos_of(this.pointer.x)
     // 时间整体吸附，保持选中物件之间的相对关系
@@ -689,8 +734,18 @@ export class DiffEditor extends StopClass {
     }
     this.clear_drag_ghost()
     this.diff.update_diff_counts()
-    this.chart.mark_changed()
-    this.drag = { active: false, items: [], base_time: 0, base_x: null, delta_time: 0, delta_x: 0 }
+    // 只是点了一下（没越过阈值）或者吸附回到了原位：数据没变，不用标记改动
+    if (dt !== 0 || dx !== 0) this.chart.mark_changed()
+    this.drag = {
+      active: false,
+      items: [],
+      base_time: 0,
+      base_x: null,
+      origin: { x: 0, y: 0 },
+      moved: false,
+      delta_time: 0,
+      delta_x: 0
+    }
   }
 
   /* ---------------- 拖动预览 ---------------- */
@@ -762,21 +817,33 @@ export class DiffEditor extends StopClass {
   private start_handle_drag(h: IHandle) {
     const raw = toRaw(h.ref.obj)
     const start_x = this.drawer.pos_of(this.pointer.x)
+    const origin = { x: this.pointer.x, y: this.pointer.y }
     if (h.kind === 'hold') {
       const hold = raw as INotes.hold
-      this.handle_drag = { handle: h, base: [...hold_nodes(hold)[h.index]], start_x }
+      this.handle_drag = {
+        handle: h,
+        base: [...hold_nodes(hold)[h.index]],
+        start_x,
+        origin,
+        moved: false
+      }
     } else {
       const hz = raw as INotes.hazard
       // 边中点记的是整条边的两个 x；角点记的是 [时间, x]
       const base =
         h.index >= 4 ? hz_side_values(hz, h.index) : [...hazard_corners(hz)[h.index]]
-      this.handle_drag = { handle: h, base, start_x }
+      this.handle_drag = { handle: h, base, start_x, origin, moved: false }
     }
   }
 
   private update_handle_drag() {
     const hd = this.handle_drag
     if (!hd) return
+    // 和拖动物件同一套防抖：点了控制点但没挪开时什么都不改，免得单击就把节点吸走
+    if (!hd.moved) {
+      if (!this.past_drag_threshold(hd.origin)) return
+      hd.moved = true
+    }
     const time = this.event_time(this.pointer.y)
     // 控制点也一样吸到栏中心（column 为 0 或按住 Alt 时 snap_x 自己会跳过）
     const x_pos = this.snap_x(this.drawer.pos_of(this.pointer.x))
@@ -824,6 +891,11 @@ export class DiffEditor extends StopClass {
   private end_handle_drag(commit: boolean) {
     const hd = this.handle_drag
     if (!hd) return
+    // 只是点了一下（没越过阈值）：数据压根没动过，不用记 undo、也不用标记改动
+    if (!hd.moved) {
+      this.handle_drag = null
+      return
+    }
     const raw = toRaw(hd.handle.ref.obj)
     const [bt, bx] = hd.base
     if (commit) {
@@ -1143,6 +1215,13 @@ export class DiffEditor extends StopClass {
     const m = this.m
     const nw = Storage.settings.note_width
     const nh = Storage.settings.note_height
+    /*
+     * 播放中、开着 3D 视角时都不画 pending（跟着鼠标的待放置预览）：
+     * - 播放中谱面在往前走，鼠标下的预览一直在飘，既挡视线又落不准；
+     * - 3D 视角下画布被 CSS 变换过（见 pixi-editor.vue 的 .enable-3d），
+     *   鼠标坐标换算不回画布坐标，画出来的预览本来就在错的位置上。
+     * */
+    const hide_pending = !this.chart.audio.paused || enable3d.enabled.value
 
     // 选中框
     this.select_gfx.clear()
@@ -1176,8 +1255,8 @@ export class DiffEditor extends StopClass {
     }
 
     // hazard 模式下用红点确认鼠标位置（位置同样按当前分音吸附，按住 Alt 则不吸附）
-    // 剪贴板里有东西时左键是粘贴，不再画这个点
-    if (NoteType.tool === 'hazard' && this.pointer.inside && !this.has_clipboard) {
+    // 剪贴板里有东西时左键是粘贴，不再画这个点；它也是跟着鼠标的 pending 提示，一样受 hide_pending 管
+    if (NoteType.tool === 'hazard' && this.pointer.inside && !this.has_clipboard && !hide_pending) {
       const dot = this.hazard_dot()
       this.handle_gfx
         .circle(dot.x, dot.y, 6)
@@ -1188,19 +1267,15 @@ export class DiffEditor extends StopClass {
     // 拖动预览：物件的值在拖动时是实时改的，把预览摆到它们当前的位置
     if (this.drag.active) this.update_drag_ghost()
 
-    // 播放中不显示 pending（跟着鼠标的待放置预览）：
-    // 谱面在往前走，鼠标下的预览一直在飘，既挡视线又落不准，停下来再看就够了
-    const playing = !this.chart.audio.paused
-
     // 剪贴板预览：有内容时它顶掉普通的放置预览（模仿 sv 的 pending）
     this.rebuild_clip_ghost()
     this.clip_ghost.visible =
-      !playing && this.has_clipboard && this.pointer.inside && !this.drag.active && !this.handle_drag
+      !hide_pending && this.has_clipboard && this.pointer.inside && !this.drag.active && !this.handle_drag
     if (this.clip_ghost.visible) this.update_clip_ghost()
 
     // 放置预览
     this.ghost.visible =
-      !playing && this.pointer.inside && !this.drag.active && !this.handle_drag && !this.has_clipboard
+      !hide_pending && this.pointer.inside && !this.drag.active && !this.handle_drag && !this.has_clipboard
     this.ghost_sprite.visible = false
     this.ghost_gfx.clear()
     if (!this.ghost.visible) return
@@ -1532,6 +1607,8 @@ function ghost_texture(tool: Tool, variant: NoteVariant): Texture {
   let name: ISkinName = 'note'
   if (tool === 'chip') name = 'chip'
   else if (tool === 'flick') name = flick_skin(NoteType.flick_dir)
+  // wide 是独立贴图，不是 note 那张
+  else if (tool === 'note' && variant === 'wide') name = 'wide'
   else if (tool === 'note' && variant === 'ex') name = 'exnote'
   else if (tool === 'note' && variant === 'critical') name = 'critical'
   return tex_or_white(name)

@@ -47,6 +47,7 @@ onUnmounted(() => Storage.save())
         <shortcut-modal-single :short="ShortCuts.$fun('pause')" msg="播放/暂停" />
         <shortcut-modal-single :short="ShortCuts.$fun('settings')" msg="设置" />
         <shortcut-modal-single :short="ShortCuts.$fun('iexport')" msg="导入/导出" />
+        <shortcut-modal-single :short="ShortCuts.$fun('enable-3d')" msg="切换斜轨" />
       </tbody>
     </table>
   </SimpleModal>

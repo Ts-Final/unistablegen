@@ -4,8 +4,19 @@ import { api } from '@core/ipc-handler.ts'
 import { notify } from './notify'
 import { modal } from './modal'
 
-/** uni 需要的所有贴图名。hold 与 note 共用 note 贴图，hazard 用纯色所以不需要贴图。 */
-export const SKIN_NAMES: ISkinName[] = ['note', 'exnote', 'critical', 'chip', 'flickL', 'flickR']
+/**
+ * uni 需要的所有贴图名。
+ * wide 有自己的 wide 贴图，hold 头与 note 共用 note 贴图，hazard 用纯色所以不需要贴图。
+ * */
+export const SKIN_NAMES: ISkinName[] = [
+  'note',
+  'exnote',
+  'critical',
+  'wide',
+  'chip',
+  'flickL',
+  'flickR'
+]
 
 interface ISkinState {
   /** note 贴图的原始尺寸，用来换算其它贴图的比例 */
@@ -50,6 +61,7 @@ export const Skin: ISkinState = {
     note: null,
     exnote: null,
     critical: null,
+    wide: null,
     chip: null,
     flickL: null,
     flickR: null

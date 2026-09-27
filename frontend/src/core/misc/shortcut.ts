@@ -6,6 +6,7 @@ import { modal } from './modal'
 import { notify } from './notify'
 import { NoteClipboard } from './note-clipboard'
 import { NoteType, pick_flick, pick_tool, pick_variant } from './note-type'
+import {enable3d} from "@core/misc/enable3d.ts"
 
 /** 已注册的快捷键功能名 */
 const functions = [
@@ -32,7 +33,9 @@ const functions = [
   'n-wide',
 
   'flick-left',
-  'flick-right'
+  'flick-right',
+  
+  'enable-3d'
 ] as const
 
 export type ShortCutName = (typeof functions)[number]
@@ -274,3 +277,6 @@ new ShortCuts('n-wide', 'e', () => pick_variant('wide'))
 /* flick 的滑动方向（A 在左、D 在右，顺手） */
 new ShortCuts('flick-left', 'r', () => pick_flick(0))
 new ShortCuts('flick-right', 't', () => pick_flick(1))
+
+
+new ShortCuts("enable-3d", 'g', () => enable3d.change())

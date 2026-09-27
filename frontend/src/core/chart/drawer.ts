@@ -262,7 +262,7 @@ export class DiffDrawer extends StopClass {
       'note'
     )
 
-    // wide：铺满整条轨道（不越到左右空白里），高度和其它 note 一致
+    // wide：用自己那张 wide 贴图，铺满整条轨道（不越到左右空白里），高度和其它 note 一致
     const wide_drawer = new DrawerExtension<Sprite, INotes.wide>(
       (w) => this.build_wide(w),
       'wide'
@@ -324,6 +324,7 @@ export class DiffDrawer extends StopClass {
 
     // 分音数：也在右边空白里，和 bpm 错开一点
     const tick_text_drawer = new DrawerExtension<Text, [number, number]>(([, tick]) => {
+      if (tick == 0) return null
       const t = new Text({ text: `.${tick}`, style: tstyle(13, "#3b3b3b") })
       t.alpha = 0.7
       t.anchor.set(0, 0.5)
@@ -359,9 +360,9 @@ export class DiffDrawer extends StopClass {
       this.drawers.beat_text.container,
       this.drawers.bpm_text.container,
       this.drawers.tick_text.container,
-      this.drawers.hazard.container,
-      this.drawers.hold_body.container,
       this.drawers.wide.container,
+      this.drawers.hold_body.container,
+      this.drawers.hazard.container,
       this.drawers.hold_head.container,
       this.drawers.note.container,
       this.drawers.chip.container,
@@ -500,9 +501,11 @@ export class DiffDrawer extends StopClass {
     return s
   }
 
+  /** wide：用独立的 wide 贴图，铺满整条轨道，高度和其它 note 一致 */
   private build_wide(w: INotes.wide) {
-    const s = new Sprite({ texture: tex_or_white('note'), label: `wide-${w.time}` })
+    const s = new Sprite({ texture: tex_or_white('wide'), label: `wide-${w.time}` })
     s.anchor.set(0.5, 0)
+    // 宽度写死成整条轨道（不受贴图比例影响），所以贴图会被拉伸到轨道宽度
     s.x = this.x_of(50)
     s.width = this.track_width
     s.height = Storage.settings.note_height

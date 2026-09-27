@@ -8,8 +8,8 @@ export type { ISettings, IStorageScheme }
 
 /** 版本号（对应 sv 的 Version） */
 export const Version = {
-  val: 4,
-  str: '0.1.3'
+  val: 5,
+  str: '0.1.4'
 }
 
 function default_settings(): ISettings {
@@ -28,7 +28,7 @@ function default_settings(): ISettings {
     bottom_bar_alpha: 50,
     judge_line_color: '#ffffff',
     judge_line_width: 2,
-    note_width: 130,
+    note_width: 26,
     note_height: 40,
     flick_height: 20,
     judge_offset: 80,

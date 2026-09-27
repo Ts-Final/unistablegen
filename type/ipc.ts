@@ -152,7 +152,15 @@ export interface IChartSummary {
 }
 
 /** 皮肤可用的贴图名（不含后缀，由 server 端 find 出实际文件） */
-export type ISkinName = 'note' | 'exnote' | 'critical' | 'chip' | 'flickL' | 'flickR'
+export type ISkinName =
+  | 'note'
+  | 'exnote'
+  | 'critical'
+  /** 整轨(wide)音符专用的贴图，和 note 分开 */
+  | 'wide'
+  | 'chip'
+  | 'flickL'
+  | 'flickR'
 
 /** import_song 的结果（与 server/src/chart-manager.ts 的 IImportSongResult 对应，state 命名沿用 sv） */
 export interface IImportSongResult {

@@ -219,7 +219,8 @@ const wide_els = computed(() => {
   const h = note_h.value
   return diff.wide.map((n) => {
     const p = pos_of(n.time)
-    return img_el('note', base_x(p.col), p.y - h / 2, TRACK_PX, h)
+    // wide 有独立的 wide 贴图，不是 note 那张
+    return img_el('wide', base_x(p.col), p.y - h / 2, TRACK_PX, h)
   })
 })
 

@@ -53,6 +53,8 @@ const preview = computed<{ name: ISkinName } | { text: string } | null>(() => {
   const v = NoteType.note_variant
   if (v === 'ex') return { name: 'exnote' }
   if (v === 'critical') return { name: 'critical' }
+  // wide 在画布上是铺满整条轨道的独立贴图（wide）
+  if (v === 'wide') return { name: 'wide' }
   return { name: 'note' }
 })
 

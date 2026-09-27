@@ -106,7 +106,7 @@ function toDate(y: string | number, m: string | number, d: string | number) {
 
 div[data-is-current-version='true'] {
   box-shadow: 0 0 5px 2px white inset;
-  padding: 10px 0;
+  padding: 10px 15px;
   border-radius: 10px;
 }
 </style>
@@ -121,7 +121,7 @@ div[data-is-current-version='true'] {
   content: '•';
   position: relative;
   left: 0;
-  width: 10px;
+  width: 15px;
   display: inline-block;
 }
 .pointed-list > :not(div) {

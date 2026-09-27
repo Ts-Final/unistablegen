@@ -11,21 +11,28 @@ import FnEditor from '@components/chart-v2/chart-tabs/small/fn-editor.vue'
 import FnTime from '@components/chart-v2/chart-tabs/small/fn-time.vue'
 import FnEase from '@components/chart-v2/chart-tabs/small/fn-ease.vue'
 import PixiEditor from '@components/chart-v2/svg-lane/pixi-editor.vue'
+import {enable3d} from "@core/misc/enable3d.ts"
+
+const is3d = enable3d.enabled
 </script>
 
 <template>
   <div class="chart-main">
-    <div class="chart-fn fn-wrapper">
-      <fn-note />
-      <fn-counter />
-      <fn-density />
-    </div>
+    <transition name="hide-left">
+      <div class="chart-fn fn-wrapper" v-if="!is3d">
+        <fn-note/>
+        <fn-counter/>
+        <fn-density/>
+      </div>
+    </transition>
     <pixi-editor />
-    <div class="chart-fn fn-wrapper">
-      <fn-editor />
-      <fn-time />
-      <fn-ease />
-    </div>
+    <transition name="hide-right">
+      <div class="chart-fn fn-wrapper" v-if="!is3d">
+        <fn-editor/>
+        <fn-time/>
+        <fn-ease/>
+      </div>
+    </transition>
   </div>
 </template>
 

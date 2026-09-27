@@ -146,6 +146,53 @@ body,
 .fadein-enter-to {
   opacity: 1;
 }
+/* 合并公共过渡属性，减少代码冗余 */
+.hide-left-enter-active,
+.hide-left-leave-active,
+.hide-right-enter-active,
+.hide-right-leave-active {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* --- hide-left (向左滑出 / 从左侧滑入) --- */
+
+.hide-left-enter-from {
+    opacity: 0;
+    transform: translateX(-100%);
+}
+.hide-left-enter-to {
+    opacity: 1;
+    transform: translateX(0);
+}
+.hide-left-leave-from {
+    opacity: 1;
+    transform: translateX(0);
+}
+.hide-left-leave-to {
+    opacity: 0;
+    transform: translateX(-100%);
+}
+
+/* --- hide-right (向右滑出 / 从右侧滑入) --- */
+
+.hide-right-enter-from {
+    opacity: 0;
+    transform: translateX(100%);
+}
+.hide-right-enter-to {
+    opacity: 1;
+    transform: translateX(0);
+}
+.hide-right-leave-from {
+    opacity: 1;
+    transform: translateX(0);
+}
+.hide-right-leave-to {
+    opacity: 0;
+    transform: translateX(100%);
+}
+
+/* ----- Fade  End --------- */
 
 .multi-table {
   display: flex;
