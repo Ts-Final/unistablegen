@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import { Storage } from '@core/storage.ts'
-import { EventHub } from '@core/misc/eventhub.ts'
-import { Chart } from '@core/chart/chart.ts'
-import ARange from '@components/a-elements/a-range.vue'
-import ANumberInput from '@components/a-elements/a-number-input.vue'
+import {computed} from "vue"
+import {Storage} from "@core/storage.ts"
+import {EventHub} from "@core/misc/eventhub.ts"
+import {Chart} from "@core/chart/chart.ts"
+import ARange from "@components/a-elements/a-range.vue"
+import ANumberInput from "@components/a-elements/a-number-input.vue"
 
 const chart = Chart.$current
 
@@ -12,7 +12,7 @@ const scale = computed({
   get: () => Storage.settings.scale,
   set: (v: number) => {
     Storage.settings.scale = v
-    EventHub.dispatch('scale-changed')
+    EventHub.dispatch("scale-changed")
   }
 })
 const meter = computed({
@@ -20,7 +20,7 @@ const meter = computed({
   set: (v: number) => {
     Storage.settings.meter = Math.max(1, Math.round(v))
     chart.diff.update_meter()
-    EventHub.dispatch('meter-changed')
+    EventHub.dispatch("meter-changed")
   }
 })
 
@@ -34,68 +34,68 @@ const column = computed({
     const n = Math.max(0, Math.min(Math.round(v), Storage.settings.max_column))
     if (n === Storage.settings.column) return
     Storage.settings.column = n
-    EventHub.dispatch('column-changed')
+    EventHub.dispatch("column-changed")
   }
 })
 
 const METERS = [4, 6, 8, 12, 16, 24, 32, 48, 64]
 /** 分列的快捷档位（和分音一样一排九个） */
-const COLUMNS = [0, 2, 4, 5, 6, 8,10,  16]
+const COLUMNS = [0, 2, 4, 5, 6, 8, 10, 16, 25]
 </script>
 
 <template>
   <table class="table-set">
     <tbody>
-      <tr>
-        <td style="width: 10%">流速</td>
-        <td colspan="9">
-          <a-range
+    <tr>
+      <td style="width: 10%">流速</td>
+      <td colspan="9">
+        <a-range
             v-model="scale"
             :max="Storage.settings.max_scale"
             :min="0.1"
             :step="0.1"
             style="width: 100%"
-          />
-        </td>
-        <td style="width: 15%">
-          <a-number-input v-model="scale" :max="Storage.settings.max_scale" :min="0.1" :step="0.1" />
-        </td>
-      </tr>
-      <tr>
-        <td rowspan="2">分音</td>
-        <td colspan="9">
-          <a-range v-model="meter" :max="Storage.settings.max_meter" :min="1" :step="1" style="width: 100%" />
-        </td>
-        <td>
-          <a-number-input v-model="meter" :max="Storage.settings.max_meter" :min="1" :step="1" />
-        </td>
-      </tr>
-      <tr>
-        <td v-for="m in METERS" :key="m" class="meter-button" @click="meter = m">{{ m }}</td>
-      </tr>
-      <tr>
-        <td rowspan="2">竖直分列</td>
-        <td colspan="9">
-          <a-range
+        />
+      </td>
+      <td style="width: 15%">
+        <a-number-input v-model="scale" :max="Storage.settings.max_scale" :min="0.1" :step="0.1"/>
+      </td>
+    </tr>
+    <tr>
+      <td rowspan="2">分音</td>
+      <td colspan="9">
+        <a-range v-model="meter" :max="Storage.settings.max_meter" :min="1" :step="1" style="width: 100%"/>
+      </td>
+      <td>
+        <a-number-input v-model="meter" :max="Storage.settings.max_meter" :min="1" :step="1"/>
+      </td>
+    </tr>
+    <tr>
+      <td v-for="m in METERS" :key="m" class="meter-button" @click="meter = m">{{ m }}</td>
+    </tr>
+    <tr>
+      <td rowspan="2">竖直分列</td>
+      <td colspan="9">
+        <a-range
             v-model="column"
             :max="Storage.settings.max_column"
             :min="0"
             :step="1"
             style="width: 100%"
-          />
-        </td>
-        <td>
-          <a-number-input
+        />
+      </td>
+      <td>
+        <a-number-input
             v-model="column"
             :max="Storage.settings.max_column"
             :min="0"
             :step="1"
-          />
-        </td>
-      </tr>
-      <tr>
-        <td v-for="c in COLUMNS" :key="c" class="meter-button" @click="column = c">{{ c }}</td>
-      </tr>
+        />
+      </td>
+    </tr>
+    <tr>
+      <td v-for="c in COLUMNS" :key="c" class="meter-button" @click="column = c">{{ c }}</td>
+    </tr>
     </tbody>
   </table>
 </template>

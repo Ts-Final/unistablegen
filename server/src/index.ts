@@ -128,7 +128,7 @@ function start_server(port: number, attempt = 1) {
 
   s.once("listening", () => {
     server = s
-    console.log(`🚀 Server running at http://localhost:${port}`);
+    console.log(`Server running at http://localhost:${port}`);
     const base = resolve_port()
     if (port !== base) {
       console.log(`ℹ️  起始端口 ${base} 被占用，现在跑在 ${port}；想固定下来就改设置里的「端口」。`);
@@ -158,10 +158,9 @@ function start_server(port: number, attempt = 1) {
 
     if (attempt === 1) {
       console.warn("");
-      console.warn(`⚠️  端口 ${port} 被占用：换成 ${next} 继续试（${RETRY_MS / 1000} 秒。`);
-      console.warn(`   想固定端口：改 charts/config.json 里的 settings.port，或启动后在设置面板改「端口」。`);
+      console.warn(`端口 ${port} 被占用：换成 ${next} 继续试（${RETRY_MS / 1000} 秒。`);
     } else {
-      console.warn(`⚠️  端口 ${port} 被占用（第 ${attempt} 次），换 ${next} 再试……`);
+      console.warn(`端口 ${port} 被占用（第 ${attempt} 次），换 ${next} 再试……`);
     }
     if (changed) console.warn(`   检测到起始端口改成了 ${base}，跳回它。`);
 
@@ -169,7 +168,7 @@ function start_server(port: number, attempt = 1) {
   })
 }
 
-if (IS_DEV) console.log("🛠  开发模式：keep-alive 已关闭（进程不会自己退出）")
+if (IS_DEV) console.log("D E V mode oh yeah")
 start_server(resolve_port())
 
 /**

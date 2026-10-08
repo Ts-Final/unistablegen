@@ -13,6 +13,7 @@ import { Skin } from '@core/misc/skin.ts'
 import { open_chart_safe } from '@core/misc/open-chart.ts'
 import { Storage, Version } from '@core/storage.ts'
 import { Update } from '@core/update.ts'
+import {clock} from "@core/misc/clock.ts"
 
 const app = createApp(App)
 
@@ -76,6 +77,7 @@ async function boot() {
     stored_version = await Storage.set_from_storage()
     ShortCuts.fromJson(Storage.data.value.shortcut)
     Storage.init_interval()
+    clock.start()
   })
 
   const list_ok = await Preinit.run('all_chart', async () => {

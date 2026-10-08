@@ -4,12 +4,26 @@ import { computed } from 'vue'
 import { Chart } from '@core/chart/chart.ts'
 import { utils } from '@core/utils.ts'
 import ARange from '@components/a-elements/a-range.vue'
+import {clock} from "@core/misc/clock.ts"
+import {Storage} from "@core/storage.ts"
 
 const chart = Chart.$current
 const { current_ms, writable_current_second, writable_play_rate, play_rate } = chart.audio.refs
 
 const beat_str = computed(() => chart.diff.get_beat_string(current_ms.value))
 const section_count = computed(() => Math.max(0, chart.diff.section_list.length - 1))
+
+function t2s(val: number) {
+  const sec = val / 1000
+  if (sec >= 60) {
+    return `${Math.floor(sec/60)} 分 ${Math.floor(sec%60)}秒`
+  } else {
+    return `${Math.floor(sec)} 秒前`
+  }
+}
+const now = clock.now
+const last_save = chart.last_save
+const settings = Storage.data
 </script>
 
 <template>
@@ -25,6 +39,9 @@ const section_count = computed(() => Math.max(0, chart.diff.section_list.length 
     <label @click="writable_play_rate = 1">播放速度:{{ play_rate }}x</label>
     <a-range v-model="writable_play_rate" max="2" min="0.25" step="0.05" />
     <div v-if="chart.audio.audio_error.value" class="fn-time-hit-err">没有找到音频文件。</div>
+    <div class="auto-save" v-if="last_save > 0 && settings.settings.show_last_save">
+      上次保存： {{ t2s(now - last_save) }}
+    </div>
   </div>
 </template>
 
@@ -70,6 +87,11 @@ input {
 .fn-time-str2 {
   width: 7.2rch;
   font-size: 0.8em;
+  color: gray;
+}
+.auto-save {
+  grid-column: span 2;
+  text-align: center;
   color: gray;
 }
 </style>

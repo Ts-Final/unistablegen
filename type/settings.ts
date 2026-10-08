@@ -124,6 +124,7 @@ export interface ISettings {
     interval: number
   }
   auto_save: boolean
+  show_last_save: boolean
 }
 
 /**
