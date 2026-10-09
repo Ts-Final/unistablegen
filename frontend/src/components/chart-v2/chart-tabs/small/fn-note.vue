@@ -12,7 +12,7 @@
  * hazard 没有贴图所以用文字，区域高度固定，切换类型时面板不会跳。
  * */
 import { computed, ref, watch } from 'vue'
-import type { ISkinName } from '@type/ipc.ts'
+import type { ISkinName } from '@unistablegen/type/ipc'
 import {
   NoteType,
   TOOLS,

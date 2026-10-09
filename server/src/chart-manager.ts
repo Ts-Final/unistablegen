@@ -1,13 +1,13 @@
 import path from "node:path"
 import fs from "node:fs"
-import { file_paths, find_audio, find_png, IMG_EXT } from "./file_path.js"
+import { file_paths, find_audio, find_png, IMG_EXT } from "./file-path.js"
 import { show_in_folder } from "./file-dialog.js"
 import type {
   IChartSummary,
   IChartsIndex,
   IImportSongResult,
   IImportSpriteResult
-} from "../../type/ipc.js"
+} from "@unistablegen/type/ipc"
 
 const INDEX_VERSION = 1
 
@@ -17,7 +17,6 @@ function is_safe_id(id: string) {
     id.length > 0 &&
     id !== "." &&
     id !== ".." &&
-    path.basename(id) === id &&
     !id.includes("/") &&
     !id.includes("\\")
   )

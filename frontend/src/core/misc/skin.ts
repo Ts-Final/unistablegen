@@ -1,5 +1,5 @@
 import { Assets, Texture } from 'pixi.js'
-import type { ISkinName } from '@type/ipc.ts'
+import type { ISkinName } from '@unistablegen/type/ipc'
 import { api } from '@core/ipc-handler.ts'
 import { notify } from './notify'
 import { modal } from './modal'

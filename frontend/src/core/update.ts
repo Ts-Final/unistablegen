@@ -1,7 +1,7 @@
 import { Invoke } from './ipc-handler'
 import { notify } from './misc/notify'
 import { Version } from './storage'
-import type { IUpdateCheck, IUpdateResult } from '@type/update.ts'
+import type { IUpdateCheck, IUpdateResult } from '@unistablegen/type/update'
 
 /**
  * 检查更新 / 更新前端页面。

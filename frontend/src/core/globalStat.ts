@@ -1,5 +1,5 @@
 import {ref} from "vue"
-import type {IChartSummary} from "@type/ipc.ts"
+import type {IChartSummary} from "@unistablegen/type/ipc"
 import {chart_api} from "@core/chart/chart-api.ts"
 
 export type GlobalRoutes = "preinit" | "start" | "editor" | "load-song"

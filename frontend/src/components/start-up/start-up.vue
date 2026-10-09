@@ -229,6 +229,7 @@ async function remove_proj(id: string) {
   height: 100vh;
   width: 100vw;
 }
+
 .chart-list-left {
   position: relative;
   display: grid;
@@ -237,6 +238,7 @@ async function remove_proj(id: string) {
   justify-items: center;
   gap: 20px;
 }
+
 .su-title {
   font-size: 2.5rem;
   text-align: center;
@@ -244,6 +246,7 @@ async function remove_proj(id: string) {
   padding-top: 10%;
   cursor: pointer;
 }
+
 .su-tip {
   position: relative;
   color: gold;
@@ -255,14 +258,17 @@ async function remove_proj(id: string) {
   overflow: hidden auto;
   max-height: 12rem;
 }
+
 .su-greeting {
   text-align: center;
 }
+
 .su-desc {
   font-size: 1.5rem;
   width: 100%;
   text-align: center;
 }
+
 .su-display {
   display: flex;
   flex-direction: column;
@@ -271,6 +277,7 @@ async function remove_proj(id: string) {
   text-wrap: nowrap;
   text-overflow: ellipsis;
 }
+
 .sd-title {
   font-size: 1.5rem;
   height: 1.8rem;
@@ -278,6 +285,7 @@ async function remove_proj(id: string) {
   text-overflow: ellipsis;
   overflow: hidden;
 }
+
 .sd-info {
   width: 50%;
   display: grid;
@@ -287,14 +295,17 @@ async function remove_proj(id: string) {
   margin-top: 15px;
   max-width: 90%;
 }
+
 .sd-info > span:first-child {
   text-align: left;
 }
+
 .sd-info > span:last-child {
   text-align: right;
   text-wrap: nowrap;
   text-overflow: ellipsis;
 }
+
 .sd-diff {
   width: 50%;
   text-overflow: ellipsis;
@@ -307,6 +318,7 @@ async function remove_proj(id: string) {
   height: 100%;
   overflow-x: hidden;
 }
+
 .charts-func {
   height: 5rem;
   border-bottom: 2px solid #b8dcee;
@@ -316,18 +328,22 @@ async function remove_proj(id: string) {
   align-items: center;
   padding-right: 10%;
 }
+
 .search-wrapper {
   flex-grow: 1;
   padding-left: 25px;
 }
+
 .search-wrapper > * {
   width: 90%;
 }
+
 /* 搜索框（照 sv：左边留白、占满剩余宽度） */
 .charts-input {
   width: calc(100% - 50px);
   text-align: left;
 }
+
 .importer {
   display: flex;
   flex-direction: row;
@@ -336,6 +352,7 @@ async function remove_proj(id: string) {
   height: 100%;
   gap: 15px;
 }
+
 .charts-wrapper {
   display: flex;
   flex-direction: column;
@@ -348,6 +365,7 @@ async function remove_proj(id: string) {
   padding-top: 5px;
   --ch-transform-len: 0.5rem;
 }
+
 .chart-unit {
   display: flex;
   flex-direction: column;
@@ -360,20 +378,25 @@ async function remove_proj(id: string) {
   position: relative;
   max-width: calc(100% - 5px);
 }
+
 .chart-unit:last-child {
   margin-bottom: 120px;
 }
+
 .chart-unit:hover {
   transform: translateX(2px);
 }
+
 .chart-unit > div {
   user-select: none;
 }
+
 .chart-unit:hover .chart-unit-name {
   box-shadow: 0 0 2px black;
   background-color: rgba(0, 0, 0, 0.4);
   color: #e2f2ff;
 }
+
 .chart-unit-name {
   text-align: left;
   text-wrap: nowrap;
@@ -385,14 +408,17 @@ async function remove_proj(id: string) {
   height: 1.2rem;
   max-width: 50vw;
 }
+
 .chart-unit-cid {
   display: flex;
   flex-direction: row;
   justify-content: space-around;
 }
+
 .chart-unit-composer {
   text-align: left;
 }
+
 .chart-unit-id {
   text-align: right;
   opacity: 0.7;

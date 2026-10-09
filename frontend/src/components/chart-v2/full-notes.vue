@@ -16,8 +16,8 @@
  * 那种环境下根元素的字号/百分比都不一定解析得出来。
  * */
 import { computed, ref } from 'vue'
-import type { INotes } from '@type/note-types.ts'
-import type { ISkinName } from '@type/ipc.ts'
+import type { INotes } from '@unistablegen/type/note-types'
+import type { ISkinName } from '@unistablegen/type/ipc'
 import { Chart } from '@core/chart/chart.ts'
 import { Storage, Version } from '@core/storage.ts'
 import { chart_api } from '@core/chart/chart-api.ts'

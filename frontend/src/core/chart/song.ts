@@ -1,5 +1,5 @@
 import { watch } from 'vue'
-import type { INotes } from '@type/note-types.ts'
+import type { INotes } from '@unistablegen/type/note-types'
 import type { Chart } from './chart'
 
 /**

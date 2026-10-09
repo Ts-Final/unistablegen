@@ -1,5 +1,5 @@
 import {reactive, ref, type Ref, toRaw} from "vue"
-import type {INotes} from "@type/note-types.ts"
+import type {INotes} from "@unistablegen/type/note-types"
 import {EventHub, StopClass} from "@core/misc/eventhub.ts"
 import {notify} from "@core/misc/notify.ts"
 import {Storage} from "@core/storage.ts"

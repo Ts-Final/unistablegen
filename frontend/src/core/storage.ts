@@ -1,5 +1,5 @@
 import {computed, ref, toRaw, watch} from "vue"
-import type {ISettings, IStorageScheme} from "@type/settings.ts"
+import type {ISettings, IStorageScheme} from "@unistablegen/type/settings"
 import {Invoke} from "./ipc-handler"
 import {utils} from "./utils"
 import {Chart} from "@core/chart/chart.ts"

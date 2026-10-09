@@ -6,7 +6,7 @@ import {initAliveWS} from "./alive.js"
 import api_router from "./api/api.js"
 import {chart_manager} from "./chart-manager.js"
 import {read_port} from "./conf.js"
-import {file_paths, IS_DEV, IS_PACKAGED} from "./file_path.js"
+import {file_paths, IS_DEV, IS_PACKAGED} from "./file-path.js"
 import {open_browser, should_open_browser} from "./open-browser.js"
 import {crash, install_crash_handlers} from "./crash.js"
 

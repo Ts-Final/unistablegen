@@ -4,10 +4,10 @@ import path from "node:path"
 import { spawn } from "node:child_process"
 import { Readable } from "node:stream"
 import { pipeline } from "node:stream/promises"
-import { file_paths, IS_DEV } from "./file_path.js"
+import { file_paths, IS_DEV } from "./file-path.js"
 import { SERVER_VERSION } from "./version.js"
 import { log_error, short_error } from "./log.js"
-import type { IUpdateCheck, IUpdateResult, IVersionPair } from "../../type/update.js"
+import type { IUpdateCheck, IUpdateResult, IVersionPair } from "@unistablegen/type/update"
 
 /**
  * 检查更新 / 更新前端页面。

@@ -11,6 +11,9 @@ importers:
       '@types/ws':
         specifier: ^8.18.1
         version: 8.18.1
+      '@unistablegen/type':
+        specifier: link:../type
+        version: link:../type
       express:
         specifier: ^5.0.0
         version: 5.2.1

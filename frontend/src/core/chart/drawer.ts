@@ -8,7 +8,7 @@ import {
   Texture
 } from 'pixi.js'
 import { toRaw } from 'vue'
-import type { INotes } from '@type/note-types.ts'
+import type { INotes } from '@unistablegen/type/note-types'
 import { Storage } from '@core/storage.ts'
 import { StopClass } from '@core/misc/eventhub.ts'
 import { Skin } from '@core/misc/skin.ts'

@@ -1,5 +1,5 @@
 import { Invoke } from '@core/ipc-handler.ts'
-import type { External } from '@type/external.ts'
+import type { External } from '@unistablegen/type/external'
 
 /**
  * 启动页的 tips（对应 sv 的 core/misc/startup-tips.ts）。

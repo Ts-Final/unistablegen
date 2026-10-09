@@ -1,4 +1,4 @@
-import type {INotes} from "@type/note-types.ts"
+import type {INotes} from "@unistablegen/type/note-types"
 
 /**
  * 通用的工具函数集合（从 sv 的 core/utils.ts 精简而来）。

@@ -32,7 +32,6 @@ export default defineConfig({
     alias: {
       "@core": resolve(import.meta.dirname, "./src/core"),
       "@components": resolve(import.meta.dirname, "./src/components"),
-      "@type": resolve(import.meta.dirname, "../type"),
     }
   }
 })

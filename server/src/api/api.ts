@@ -5,12 +5,12 @@ import charts_router, { list_charts } from "./charts.js"
 import skin_router from "./skin.js"
 import { chart_manager } from "../chart-manager.js"
 import { ask_file, open_folder } from "../file-dialog.js"
-import { file_paths } from "../file_path.js"
+import { file_paths } from "../file-path.js"
 import { browser_status } from "../open-browser.js"
 import { broadcast } from "../alive.js"
 import { check_update, install_frontend_update } from "../updater.js"
 import { log_error } from "../log.js"
-import type { External } from "../../../type/external.js"
+import type { External } from "@unistablegen/type/external"
 
 /**
  * /api 下所有接口都挂在这个 router 上（index.ts 只负责 `app.use("/api", api_router)`）。

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, toRaw } from 'vue'
-import type { INotes } from '@type/note-types.ts'
+import type { INotes } from '@unistablegen/type/note-types'
 import { Chart } from '@core/chart/chart.ts'
 import { NoteClipboard } from '@core/misc/note-clipboard.ts'
 import { EASE_NAMES } from '@core/chart/ease.ts'

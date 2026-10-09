@@ -1,5 +1,5 @@
 import { ref, toRaw } from 'vue'
-import type { INotes } from '@type/note-types.ts'
+import type { INotes } from '@unistablegen/type/note-types'
 
 /** 谱面里可被编辑的物件类型 */
 export type ObjKind = 'note' | 'hold' | 'wide' | 'hazard' | 'chip' | 'flick'

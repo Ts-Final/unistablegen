@@ -1,5 +1,5 @@
 import { reactive } from 'vue'
-import type { INotes } from '@type/note-types.ts'
+import type { INotes } from '@unistablegen/type/note-types'
 
 /** fn-note 里可选的物件类型 */
 export type Tool = 'note' | 'hold' | 'hazard' | 'chip' | 'flick'

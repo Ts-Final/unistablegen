@@ -1,5 +1,5 @@
 import { Router } from "express"
-import { file_paths, find_asset } from "../file_path.js"
+import { file_paths, find_asset } from "../file-path.js"
 import path from "node:path"
 import fs from "node:fs"
 

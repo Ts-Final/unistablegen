@@ -88,7 +88,7 @@ async function import_sprite() {
         </div>
         <!-- 没有曲绘（或者图坏了）时显示项目图标，不留一块空白 -->
         <a-img :src="cover_url" class="song-sprite">
-          <img :src="APP_ICON" alt="" class="song-sprite" />
+          gunmu
         </a-img>
       </div>
     </div>

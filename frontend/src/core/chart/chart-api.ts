@@ -1,7 +1,7 @@
 import { api } from '@core/ipc-handler.ts'
 import { Storage } from '@core/storage.ts'
-import type { IChartSummary, ISkinName } from '@type/ipc.ts'
-import type { INotes } from '@type/note-types.ts'
+import type { IChartSummary, ISkinName } from '@unistablegen/type/ipc'
+import type { INotes } from '@unistablegen/type/note-types'
 
 /**
  * 谱面数据(chart.json)的读写。

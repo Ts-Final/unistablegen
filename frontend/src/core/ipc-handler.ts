@@ -1,5 +1,5 @@
 import axios from 'axios'
-import type { ipc, IpcCall } from '@type/ipc.ts'
+import type { ipc, IpcCall } from '@unistablegen/type/ipc'
 
 /**
  * 与 server 通信用的 axios 实例。

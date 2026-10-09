@@ -4,10 +4,12 @@
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "lib": ["ES2022"],
-    // 不再写死 rootDir：前后端共用的类型放在 ../type 下，
-    // rootDir 写死会触发 TS6059（文件不在 rootDir 内）。
-    // 去掉之后 tsc 会自己推算公共根目录（仓库根），产物结构变成
-    //   dist/server/src/...  与  dist/type/...
+    // 前后端共用的类型已抽成 @unistablegen/type 本地包（../type/package.json），
+    // 依赖写在 dependencies（link:../type），pnpm install 后链到 node_modules。
+    // 它经 node_modules 解析进来，TS 会把它当 external library，
+    // 既不会被 emit，也不参与 rootDir 归属检查（TS6059）。
+    // 所以这里把 rootDir 钉死在 src：产物是 dist/index.js + dist/api/...
+    "rootDir": "src",
     "outDir": "./dist",
     "strict": true,
     "esModuleInterop": true,
@@ -17,7 +19,7 @@
     "declaration": true,
     "sourceMap": true
   },
-  // src 与前后端共用的 type 一起编译（type 里只有类型，产物是空模块）
-  "include": ["src/**/*", "../type/**/*"],
+  // 只编译 server 自己的源码；共享类型走 @unistablegen/type 包，不再进本项目的 program
+  "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]
 }

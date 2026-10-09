@@ -17,7 +17,7 @@ import { closeModal } from '@kolirt/vue-modal'
 import SimpleModal from '@components/modals/simple-modal.vue'
 import AButton2 from '@components/a-elements/a-button2.vue'
 import { Update } from '@core/update.ts'
-import type { IUpdateCheck, IUpdateResult } from '@type/update.ts'
+import type { IUpdateCheck, IUpdateResult } from '@unistablegen/type/update'
 
 const props = defineProps<{ info: IUpdateCheck }>()
 

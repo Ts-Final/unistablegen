@@ -1,6 +1,6 @@
 import fs from "node:fs"
-import { file_paths } from "./file_path.js"
-import type { IStorageScheme } from "../../type/settings.js"
+import { file_paths } from "./file-path.js"
+import type { IStorageScheme } from "@unistablegen/type/settings"
 
 /**
  * 读 charts/config.json（也就是前端 Storage 存的那份设置）。

@@ -15,9 +15,9 @@
 
     "paths": {
       "@core/*": ["./src/core/*"],
-      "@components/*": ["./src/components/*"],
-      "@type/*": ["../type/*"]
+      "@components/*": ["./src/components/*"]
     }
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue", "../type/**/*"]
+  // 只检查前端自己的源码；共享类型走 @unistablegen/type 包（link:../type）
+  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue"]
 }

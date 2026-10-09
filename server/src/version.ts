@@ -1,6 +1,6 @@
 import fs from "node:fs"
 import path from "node:path"
-import { file_paths, PROJECT_ROOT } from "./file_path.js"
+import { file_paths, PROJECT_ROOT } from "./file-path.js"
 
 /**
  * server 自己的版本号（检查更新时和 Release 里的服务端版本比）。

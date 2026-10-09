@@ -1,8 +1,8 @@
 import { spawn } from "node:child_process"
 import fs from "node:fs"
 import { read_browser_path } from "./conf.js"
-import { IS_DEV } from "./file_path.js"
-import type { IBrowserLaunch } from "../../type/ipc.js"
+import { IS_DEV } from "./file-path.js"
+import type { IBrowserLaunch } from "@unistablegen/type/ipc"
 
 /**
  * 打包成 exe 之后，server 启动时要自己把页面用浏览器打开。

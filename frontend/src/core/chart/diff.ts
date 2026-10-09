@@ -1,5 +1,5 @@
 import {computed, type ComputedRef, ref, type Ref, toRaw} from "vue"
-import type {INotes} from "@type/note-types.ts"
+import type {INotes} from "@unistablegen/type/note-types"
 import type {Chart} from "./chart"
 import {Storage} from "@core/storage.ts"
 import {GlobalStat} from "@core/globalStat.ts"

@@ -3,8 +3,8 @@
   "version": "1.0.1",
   "description": "Express.js API with TypeScript",
   "type": "module",
-  "main": "dist/server/src/index.js",
-  "bin": "dist/server/src/index.js",
+  "main": "dist/index.js",
+  "bin": "dist/index.js",
   "pkg": {
     "targets": [
       "node24-win-x64"
@@ -19,7 +19,7 @@
     "build:icon": "node scripts/set-icon.mjs",
     "build:exe": "pnpm run build:page && pnpm run type-check && pnpm run build:bundle && pkg dist-bundle/index.js --sea --targets node24-win-x64 --output ../build/unistablegen.exe && pnpm run build:icon",
     "type-check": "tsc --noEmit",
-    "start": "node dist/server/src/index.js",
+    "start": "node dist/index.js",
     "install:ci": "npm ci"
   },
   "keywords": [
@@ -31,6 +31,7 @@
   "license": "MIT",
   "dependencies": {
     "@types/ws": "^8.18.1",
+    "@unistablegen/type": "link:../type",
     "express": "^5.0.0",
     "ws": "^8.21.3"
   },

@@ -1,7 +1,7 @@
 import fs from "node:fs"
 import path from "node:path"
 import readline from "node:readline"
-import { IS_PACKAGED } from "./file_path.js"
+import { IS_PACKAGED } from "./file-path.js"
 import { format_error } from "./log.js"
 
 /**

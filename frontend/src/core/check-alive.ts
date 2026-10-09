@@ -1,5 +1,5 @@
 import { notify } from './misc/notify'
-import type { IServerSocketMessage } from '@type/update.ts'
+import type { IServerSocketMessage } from '@unistablegen/type/update'
 import {ref} from "vue"
 
 /**
