@@ -1,0 +1,12 @@
+{
+  "name": "@unistablegen/type",
+  "version": "1.0.0",
+  "private": true,
+  "description": "unistablegen 前后端共用的类型声明（纯类型，无运行时值）",
+  "type": "module",
+  "exports": {
+    "./*": {
+      "types": "./*.ts"
+    }
+  }
+}

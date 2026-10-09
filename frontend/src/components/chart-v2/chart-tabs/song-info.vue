@@ -15,9 +15,6 @@ const chart = Chart.$current
 const song = chart.song
 const diff = chart.diff
 
-/** 没有曲绘时用它顶上（就是顶栏那个图标） */
-const APP_ICON = '/icon.png'
-
 const cover_key = ref(0)
 const cover_url = computed(() => `${chart_api.bg_url(chart.id)}?v=${cover_key.value}`)
 

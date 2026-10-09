@@ -1,16 +1,18 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
-import type { IChartSummary } from '@type/ipc.ts'
-import AButton2 from '@components/a-elements/a-button2.vue'
-import ATextInput from '@components/a-elements/a-text-input.vue'
-import { GlobalStat } from '@core/globalStat.ts'
-import { Storage } from '@core/storage.ts'
-import { chart_api } from '@core/chart/chart-api.ts'
-import { StartUpTips } from '@core/misc/startup-tips.ts'
-import { modal } from '@core/misc/modal.ts'
-import { open_chart_safe } from '@core/misc/open-chart.ts'
-import { Invoke } from '@core/ipc-handler.ts'
-import { utils } from '@core/utils.ts'
+import {computed, ref, watch} from "vue"
+import type {IChartSummary} from "@unistablegen/type/ipc"
+import AButton2 from "@components/a-elements/a-button2.vue"
+import ATextInput from "@components/a-elements/a-text-input.vue"
+import {GlobalStat} from "@core/globalStat.ts"
+import {Storage} from "@core/storage.ts"
+import {chart_api} from "@core/chart/chart-api.ts"
+import {StartUpTips} from "@core/misc/startup-tips.ts"
+import {modal} from "@core/misc/modal.ts"
+import {open_chart_safe} from "@core/misc/open-chart.ts"
+import {Invoke} from "@core/ipc-handler.ts"
+import {utils} from "@core/utils.ts"
+import {notify} from "@core/misc/notify.ts"
+import AImg from "@components/a-elements/a-img.vue"
 
 /** 正在打开谱面时锁住，避免连点 */
 let busy = false
@@ -19,7 +21,7 @@ let busy = false
  * 搜索框过滤后的列表（对应 sv chart-list 的 shown）。
  * sv 的做法就是直接拿整个摘要的 JSON 做包含匹配，所以 id / 曲名 / 谱师 / 难度都能搜到。
  * */
-const search = ref('')
+const search = ref("")
 const shown = ref<IChartSummary[]>(GlobalStat.all_chart)
 
 watch(search, (c) => {
@@ -28,7 +30,7 @@ watch(search, (c) => {
 
 // 列表刷新（导入/删除/重开）之后清空搜索词并显示全部，和 sv 一样
 watch(GlobalStat.all_chart_ref, () => {
-  search.value = ''
+  search.value = ""
   shown.value = GlobalStat.all_chart
 })
 
@@ -39,9 +41,10 @@ const username = Storage.username
 const greeting_days = computed(() => Storage.used_days.toFixed(0))
 const running = computed(() => utils.toTimeStr(Storage.running_time.value / 1000, 0))
 
-const tip = ref(utils.random(StartUpTips) ?? '')
+const tip = ref(utils.random(StartUpTips) ?? "")
+
 function random_tip() {
-  tip.value = utils.random(StartUpTips) ?? ''
+  tip.value = utils.random(StartUpTips) ?? ""
 }
 
 /** 导入曲目：选音频 -> 问 id -> 让 server 复制到 charts/<id>/ */
@@ -50,7 +53,7 @@ async function import_chart() {
 
   let song: { path: string; name: string } | null = null
   try {
-    song = (await Invoke('ask-song', {})) as { path: string; name: string } | null
+    song = (await Invoke("ask-song", {})) as { path: string; name: string } | null
   } catch (e) {
     modal.ShowInformationModal.show({
       msg: `<b>后端炸了？</b><br><br>${e instanceof Error ? e.message : String(e)}`
@@ -59,7 +62,7 @@ async function import_chart() {
   }
   if (!song?.path) return
 
-  const ext_ix = song.name.lastIndexOf('.')
+  const ext_ix = song.name.lastIndexOf(".")
   const def = ext_ix < 0 ? song.name : song.name.slice(0, ext_ix)
 
   const id = (await modal.AskIdModal.show({
@@ -68,15 +71,15 @@ async function import_chart() {
   })) as string | undefined
   if (!id) return
 
-  const r = await Invoke('import-song', { id, path: song.path })
+  const r = await Invoke("import-song", {id, path: song.path})
 
-  if (r.state === 'existed') {
+  if (r.state === "existed") {
     modal.ShowInformationModal.show({
-      msg: `你不应该看到这个，否则ask-id白干了`
+      msg: `你不应该看到这个，否则ask-id白干了。<br>出错原因：已存在相同id的文件夹，无法覆盖。`
     })
     return
   }
-  if (r.state === 'failed') {
+  if (r.state === "failed") {
     modal.ShowInformationModal.show({
       msg: `喜报：炸了。我也不知道为什么，可以提供后端日志截图给开发组看看哦。`
     })
@@ -95,7 +98,7 @@ async function import_chart() {
     } catch (e) {
       modal.ShowInformationModal.show({
         msg: `<b>初始化谱面数据失败</b><br>charts/${id}/<br><br>${
-          e instanceof Error ? e.message : String(e)
+            e instanceof Error ? e.message : String(e)
         }`
       })
       return
@@ -118,6 +121,30 @@ function detail(c: IChartSummary) {
   display_id.value = c.id
   display_data.value = c
 }
+
+const to_delete = ref("")
+
+function try_delete(id: string) {
+  if (to_delete.value != id) {
+    to_delete.value = id
+    return
+  }
+  remove_proj(id)
+}
+
+function cancel_delete() {
+  to_delete.value = ""
+}
+
+async function remove_proj(id: string) {
+  if (busy) return
+  busy = true
+  const r = await Invoke("remove-song", {id: id})
+  if (!r) notify.error("删除失败……？")
+  busy = false
+  GlobalStat.update_all_chart()
+  to_delete.value = ""
+}
 </script>
 
 <template>
@@ -126,8 +153,8 @@ function detail(c: IChartSummary) {
       <div class="su-title" @click="random_tip">unistablegen</div>
       <div class="su-tip" v-html="tip" @click="random_tip"></div>
       <div class="su-greeting">
-        欢迎，{{ username }}<br />
-        这是你使用unistablegen的第{{ greeting_days }}天！ <br />
+        欢迎，{{ username }}<br/>
+        这是你使用unistablegen的第{{ greeting_days }}天！ <br/>
         已运行：{{ running }}
       </div>
       <div v-if="!display_id" class="su-desc">
@@ -140,7 +167,7 @@ function detail(c: IChartSummary) {
           <span>id: {{ display_data.id }}</span>
           <span>{{ display_data.diffs.length }} diff</span>
         </div>
-        <br />
+        <br/>
         <div class="sd-diff">
           <div>Diffs:</div>
           <div v-for="(d, i) in display_data.diffs" :key="i">- {{ d }}</div>
@@ -151,28 +178,41 @@ function detail(c: IChartSummary) {
     <div class="chart-list-right">
       <div class="charts-func">
         <div class="search-wrapper">
-          <a-text-input v-model="search" class="charts-input" placeholder="点击输入文字！" />
+          <a-text-input v-model="search" class="charts-input" placeholder="点击输入文字！"/>
           <div>{{ shown.length }} 结果</div>
         </div>
         <div class="importer">
-          <a-button2 msg="导入曲目" @click="import_chart" />
-          <a-button2 msg="设置" @click="modal.SettingModal.show({})" />
-          <a-button2 msg="使用说明" @click="modal.H2PModal.show({})" />
+          <a-button2 msg="导入曲目" @click="import_chart"/>
+          <a-button2 msg="设置" @click="modal.SettingModal.show({})"/>
+          <a-button2 msg="使用说明" @click="modal.H2PModal.show({})"/>
         </div>
       </div>
       <div class="charts-wrapper">
         <div
-          v-for="chart in shown"
-          :key="chart.id"
-          class="chart-unit"
-          @click="open_proj(chart.id)"
-          @mouseenter="detail(chart)"
+            v-for="chart in shown"
+            :key="chart.id"
+            class="chart-unit"
+            @click="open_proj(chart.id)"
+            @mouseenter="detail(chart)"
+            @contextmenu.capture.prevent="try_delete(chart.id)"
         >
           <div class="chart-unit-name">{{ chart.name }}</div>
           <div class="chart-unit-cid">
             <div class="chart-unit-composer">{{ chart.composer }}</div>
             <div class="chart-unit-id">{{ chart.id }}</div>
           </div>
+          <a-img :src="chart_api.bg_url(chart.id)" class="chart-unit-bg"/>
+          <transition name="fade-0.2" mode="out-in">
+            <div v-if="to_delete == chart.id" class="chart-unit-delete">
+              <div>真的要删掉吗？</div>
+              <a-button2
+                  msg="我确定！"
+                  style="color: #e66"
+                  @click.capture.stop="try_delete(chart.id)"
+              />
+              <a-button2 msg="算了算了" @click.capture.stop="cancel_delete()"/>
+            </div>
+          </transition>
         </div>
         <div v-if="shown.length == 0">这里没有歌哦。试试导入，或者换个搜索词吧！</div>
       </div>
@@ -358,5 +398,33 @@ function detail(c: IChartSummary) {
   opacity: 0.7;
   flex-grow: 1;
   padding-right: 10px;
+}
+
+.chart-unit-bg {
+  width: 100%;
+  position: absolute;
+  height: 100%;
+  object-fit: cover;
+  z-index: -1;
+  top: 0;
+  left: 0;
+  filter: blur(2px);
+  opacity: 0.6;
+}
+
+.chart-unit-delete {
+  display: grid;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  backdrop-filter: blur(4px);
+  grid-template-columns: 4fr 1fr 1fr;
+  padding-left: 5px;
+  box-sizing: border-box;
+  background-color: rgba(0, 0, 0, 0.4);
+  align-items: center;
+  box-shadow: red 0 0 4px;
 }
 </style>

@@ -38,6 +38,12 @@ export interface ipc {
     }
     r: IImportSongResult
   }
+  "remove-song":{
+    args: {
+      id: string
+    }
+    r: boolean
+  }
   "ask-song": {
     args: {}
     /** 取消则为 null */

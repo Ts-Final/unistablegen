@@ -25,16 +25,6 @@ const TIPS_FILE = "startup-tips.json"
 
 /** 内置 tips：external/startup-tips.json 不存在或坏掉时用它兜底 */
 const DEFAULT_TIPS: External.StartUpTips = [
-  "Tab 可以在「谱面信息 / 谱面编辑 / 变奏」之间切换。",
-  "不选中任何物件类型时，在画布上拖动即可框选。",
-  "Ctrl + 滚轮 调流速，Alt + 滚轮 调分音。",
-  "右键物件可以删除它；Ctrl+C / X / V 复制、剪切、粘贴。",
-  "hold：左键定头，右键加节点，最后一次左键收尾。",
-  "hazard：四次左键依次定 x1、x2、y1、y2 画好四边形，再用 ease 面板调整。",
-  "选中 hold 或 hazard 后会出现蓝色控制点，拖动即可调整。",
-  "谱面数据保存在 charts/<id>/chart.json，索引在 charts/charts.json。",
-  "皮肤贴图放在 skin/ 目录，文件名只要包含对应关键字即可，后缀随意。",
-  "Ctrl+Z / Ctrl+Y 撤销与重做。"
 ]
 
 /**
@@ -227,6 +217,11 @@ router.post("/import-song", (req: Request, res: Response): void => {
   // id 的字符不限（sv 只要求非空且不重复），这里只挡路径穿越
   if (!p) return void res.status(400).json({ state: "failed", id, reason: "missing path" })
   res.json(chart_manager.import_song(p, id))
+})
+
+router.post("/delete-song", (req: Request, res: Response): void => {
+  const id = String(req.body?.id ?? "").trim()
+  res.json(chart_manager.remove_entry(id))
 })
 
 /** 导入曲绘（对应 sv 的 Invoke('import-sprite')）：把图片复制成 charts/<id>/jacket<ext> */

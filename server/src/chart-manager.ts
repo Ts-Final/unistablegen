@@ -116,7 +116,8 @@ export class ChartManager {
     if (!cached) {
       const fresh = ids.map((id) => this.scan(id)).filter(Boolean) as IChartSummary[]
       this.write_index(fresh)
-      console.log(`[chart-manager] 已生成谱面索引 ${this.index_path}（${fresh.length} 张）`)
+      fresh.forEach(f => console.log(`[chart-manager]自动导入: ${f.name} (${f.id})`))
+      console.log(`[chart-manager]自动导入谱面共 ${fresh.length} 张，为什么不用前端导入 (hyw`)
       return fresh
     }
 
@@ -159,9 +160,10 @@ export class ChartManager {
   /** 删除某个索引条目（谱面被删掉时用） */
   remove_entry(id: string) {
     const list = this.read_index_file()
-    if (!list) return
+    if (!list) return false
     const next = list.filter((e) => e.id !== id)
     if (next.length !== list.length) this.write_index(next)
+    return true
   }
 
   /* ---------------- 谱面文件 ---------------- */
