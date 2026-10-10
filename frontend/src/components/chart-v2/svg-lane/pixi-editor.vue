@@ -4,6 +4,7 @@ import { onMounted, onUnmounted, useTemplateRef, watch } from 'vue'
 import { Chart } from '@core/chart/chart.ts'
 import { DiffDrawer } from '@core/chart/drawer.ts'
 import { DiffEditor } from '@core/chart/edit-drawer.ts'
+import { MouseTime } from '@core/chart/mouse-time.ts'
 import { Storage } from '@core/storage.ts'
 import { EventHub } from '@core/misc/eventhub.ts'
 import {enable3d} from "@core/misc/enable3d.ts"
@@ -13,6 +14,7 @@ const diff = chart.diff
 const container = useTemplateRef<HTMLDivElement>('pixi-container')
 const drawer = new DiffDrawer(diff, { total_width: Storage.settings.track_width })
 let editor: DiffEditor | null = null
+let mouse_time: MouseTime | null = null
 
 onMounted(async () => {
   await drawer.init()
@@ -21,12 +23,16 @@ onMounted(async () => {
   el.appendChild(drawer.app.canvas)
   editor = new DiffEditor(drawer)
   editor.listen()
+  // 时间线要在编辑器之后建：pixi 里后加进 stage 的在上层，它得盖住物件和 overlay
+  mouse_time = new MouseTime(drawer)
+  mouse_time.listen()
   diff.force_fuck()
   EventHub.dispatch('audio-time-update')
 })
 
 onUnmounted(() => {
   editor?.stop()
+  mouse_time?.stop()
   drawer.stop()
   drawer.app.destroy(true, { children: true })
 })

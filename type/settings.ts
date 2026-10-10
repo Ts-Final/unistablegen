@@ -41,6 +41,11 @@ export interface ISettings {
   judge_offset: number
   /** 谱面时间偏移（ms），正值表示谱面整体延后 */
   offset: number
+  /**
+   * 按住 Ctrl 时鼠标处那条「时间线」的颜色（线 + 左端的文字）。
+   * 见 frontend 的 core/chart/mouse-time.ts。
+   * */
+  mouse_time_color: string
 
   /* ---- hazard ---- */
   hazard_color: string

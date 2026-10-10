@@ -96,6 +96,11 @@ onUnmounted(() => {
         <div>判定线宽度 (px)</div>
         <a-number-input v-model="r.settings.judge_line_width" class="in" min="0" />
         <ds>横贯整个画布的判定线，0 表示不画。</ds>
+        <div>鼠标时间线颜色</div>
+        <a-color-input v-model="r.settings.mouse_time_color" />
+        <ds>
+          按住 Ctrl 时，鼠标所在的高度会出现一条横线，线的左端显示那个位置的时间（m:ss.xxx）。
+        </ds>
         <div>底部条颜色</div>
         <a-color-input v-model="r.settings.bottom_bar_color" />
         <div>底部条透明度</div>

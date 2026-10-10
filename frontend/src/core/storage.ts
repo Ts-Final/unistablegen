@@ -34,6 +34,8 @@ function default_settings(): ISettings {
     flick_height: 20,
     judge_offset: 80,
     offset: 0,
+    /** 按住 Ctrl 时鼠标时间线的颜色（见 core/chart/mouse-time.ts） */
+    mouse_time_color: "#ff2b6b",
     
     hazard_color: "#ff0000",
     hazard_alpha: 100,
