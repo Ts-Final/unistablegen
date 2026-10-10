@@ -13,6 +13,7 @@ import {Invoke} from "@core/ipc-handler.ts"
 import {utils} from "@core/utils.ts"
 import {notify} from "@core/misc/notify.ts"
 import AImg from "@components/a-elements/a-img.vue"
+import {CheckAlive} from "@core/check-alive.ts"
 
 /** 正在打开谱面时锁住，避免连点 */
 let busy = false
@@ -145,10 +146,23 @@ async function remove_proj(id: string) {
   GlobalStat.update_all_chart()
   to_delete.value = ""
 }
+
+const dis = CheckAlive.dis
 </script>
 
 <template>
-  <div class="chart-list-wrapper">
+  <div style="width: 100%;margin-top: 6rem;text-align:center;" v-if="dis">
+    我说后端炸了哦。我说断连的时候用不了了哦。
+    <br>
+    看看命令行是不是已经关了，如果关了就用不了了哦。
+    <br>
+    <pre class="idea-code">
+const ws = new Websocket("${window.location.host}/api")
+ws.onerror = () => start_up.disconnect()
+// TODO: 要不要在断连的状态下直接关掉这个页面
+    </pre>
+  </div>
+  <div class="chart-list-wrapper" v-else>
     <div class="chart-list-left">
       <div class="su-title" @click="random_tip">unistablegen</div>
       <div class="su-tip" v-html="tip" @click="random_tip"></div>
