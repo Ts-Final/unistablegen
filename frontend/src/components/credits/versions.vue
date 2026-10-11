@@ -42,6 +42,13 @@ import Build from '@components/credits/build.vue'
       <div>我新画了note皮肤，同时wide不再与note共用而是独立贴图了。</div>
       <div>调整了note大小的默认设置。</div>
     </Build>
+    <build build="6" y="2026" m="10" d="11" title="0.1.5">
+      <div>添加了删除谱面的功能。（怎么把这个给漏了</div>
+      <div>修改了命令行中时间的格式，现在短了一些我感觉比较通人性</div>
+      <div>添加了按住 ctrl 能够查看鼠标时间的功能（来自白巧的request</div>
+      <div>调整了谱面列表页面在后端断连时的表现行为。</div>
+      <div>调整了settings的footer按钮。</div>
+    </build>
   </div>
 </template>
 

@@ -56,7 +56,7 @@ export function open_browser(url: string): IBrowserLaunch {
     }
 
     if (!usable) {
-      last.notice = `设置里指定的浏览器用不了（找不到这个文件）：<br><code>${configured}</code><br>已经改用系统默认浏览器打开。`
+      last.notice = `不是哥们我浏览器呢：<br><code>${configured}</code><br>不见了，我先用默认的了嘻嘻。`
       console.warn(`[open-browser] 找不到配置的浏览器：${configured}`)
     } else {
       try {
@@ -67,7 +67,7 @@ export function open_browser(url: string): IBrowserLaunch {
           last = {
             used: "default",
             path: configured,
-            notice: `设置里指定的浏览器启动失败：<br><code>${configured}</code><br>已经改用系统默认浏览器打开。`
+            notice: `这程序没力气，打不开，<br><code>${configured}</code><br>已经改用系统默认浏览器打开。`
           }
           open_default(url)
         })
