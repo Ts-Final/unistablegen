@@ -1,18 +1,18 @@
-import { createApp } from 'vue'
-import './style.css'
-import App from './App.vue'
-import { createModal } from '@kolirt/vue-modal'
-import { CheckAlive } from '@core/check-alive.ts'
-import { GlobalStat } from '@core/globalStat.ts'
-import { Invoke } from '@core/ipc-handler.ts'
-import { ShortCuts } from '@core/misc/shortcut.ts'
-import { modal } from '@core/misc/modal.ts'
-import { Preinit } from '@core/misc/preinit.ts'
-import { load_external_tips } from '@core/misc/startup-tips.ts'
-import { Skin } from '@core/misc/skin.ts'
-import { open_chart_safe } from '@core/misc/open-chart.ts'
-import { Storage, Version } from '@core/storage.ts'
-import { Update } from '@core/update.ts'
+import {createApp} from "vue"
+import "./style.css"
+import App from "./App.vue"
+import {createModal} from "@kolirt/vue-modal"
+import {CheckAlive} from "@core/check-alive.ts"
+import {GlobalStat} from "@core/globalStat.ts"
+import {Invoke} from "@core/ipc-handler.ts"
+import {ShortCuts} from "@core/misc/shortcut.ts"
+import {modal} from "@core/misc/modal.ts"
+import {Preinit} from "@core/misc/preinit.ts"
+import {load_external_tips} from "@core/misc/startup-tips.ts"
+import {Skin} from "@core/misc/skin.ts"
+import {open_chart_safe} from "@core/misc/open-chart.ts"
+import {Storage, Version} from "@core/storage.ts"
+import {Update} from "@core/update.ts"
 import {clock} from "@core/misc/clock.ts"
 
 const app = createApp(App)
@@ -24,18 +24,18 @@ const app = createApp(App)
 app.use(
   createModal({
     transitionTime: 200,
-    animationType: 'slideUp',
+    animationType: "slideUp",
     modalStyle: {
-      padding: '2rem 1rem'
+      padding: "2rem 1rem"
     },
     overlayStyle: {
-      'background-color': 'rgba(0,0,0,.3)'
+      "background-color": "rgba(0,0,0,.3)"
     }
   })
 )
-app.mount('#app')
+app.mount("#app")
 
-document.title = 'unistablegen'
+document.title = "unistablegen"
 
 CheckAlive.start()
 
@@ -43,7 +43,8 @@ CheckAlive.start()
 ShortCuts.handle()
 
 function open_charts_folder() {
-  Invoke('open-charts-folder', {}).catch(() => {})
+  Invoke("open-charts-folder", {}).catch(() => {
+  })
 }
 
 /**
@@ -68,19 +69,34 @@ function version_notice(stored: number | undefined) {
   }
 }
 
+async function ping() {
+  try {
+    const r1 = await fetch("/api/ping")
+    return r1.ok
+  } catch (error) {
+    console.log(error)
+    return false
+  }
+}
 /** 启动流程：先读设置，其余阶段跑完再进曲目选择页 */
 async function boot() {
+  const server_status = await ping()
+  console.log("server_status", server_status)
+  if (!server_status) {
+    return GlobalStat.route.change("start")
+  }
+  
   /** 存档里记的版本号，用来判断这次是不是更新后的第一次打开（见 version_notice） */
   let stored_version: number | undefined
   // 设置存在 server 端的 charts/config.json（对应 sv 的 set_from_storage）
-  await Preinit.run('load_settings', async () => {
+  await Preinit.run("load_settings", async () => {
     stored_version = await Storage.set_from_storage()
     ShortCuts.fromJson(Storage.data.value.shortcut)
     Storage.init_interval()
     clock.start()
   })
-
-  const list_ok = await Preinit.run('all_chart', async () => {
+  
+  const list_ok = await Preinit.run("all_chart", async () => {
     await GlobalStat.update_all_chart()
   })
   if (!list_ok) {
@@ -88,44 +104,44 @@ async function boot() {
       msg:
         `<b>无法读取谱面列表</b><br><br>请确认 server 已经启动（默认 http://localhost:3000），<br>` +
         `并且前端是通过 <code>pnpm dev</code> 访问的。`,
-      buttons: [{ msg: '打开charts文件夹', action: open_charts_folder }]
+      buttons: [{msg: "打开charts文件夹", action: open_charts_folder}]
     })
   }
-
+  
   // 缺图会弹 modal，不算阶段失败
-  await Preinit.run('load_skin', async () => {
+  await Preinit.run("load_skin", async () => {
     await Skin.check_skin()
   })
-
-  await Preinit.run('load_tips', async () => {
+  
+  await Preinit.run("load_tips", async () => {
     await load_external_tips()
   })
-
+  
   /*
    * 打包成 exe 后浏览器是 server 打开的：如果设置里指定的浏览器用不了，
    * server 会退回系统默认浏览器并把原因放在 browser-status 里，这里弹提示。
    * （开发模式下 server 不开浏览器，这里自然什么都不会弹。）
    * */
-  await Preinit.run('open_browser', async () => {
-    const r = await Invoke('browser-status', {})
+  await Preinit.run("open_browser", async () => {
+    const r = await Invoke("browser-status", {})
     if (!r?.notice) return
     modal.ShowInformationModal.show({
       msg: `<b>浏览器</b><br><br>${r.notice}`
     })
   })
-
+  
   // 版本变化提示：更新之后第一次打开就把更新日志弹出来（和 sv 一样，放在启动流程的末尾）
   version_notice(stored_version)
-
+  
   // ?id= 就直接打开
-  const wanted = new URLSearchParams(location.search).get('id')
+  const wanted = new URLSearchParams(location.search).get("id")
   const target = wanted ? GlobalStat.all_chart.find((c) => c.id === wanted) : undefined
   if (target) {
     await open_chart_safe(target.id, target.name)
     return
   }
-
-  GlobalStat.route.change('start')
+  
+  GlobalStat.route.change("start")
 }
 
 /**
@@ -136,7 +152,7 @@ async function boot() {
  * */
 async function check_update_silently() {
   const info = await Update.check(true)
-  if (info) modal.NewVersionModal.show({ info })
+  if (info) modal.NewVersionModal.show({info})
 }
 
 /**

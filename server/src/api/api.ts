@@ -262,6 +262,10 @@ router.post("/update-frontend", async (req: Request, res: Response): Promise<voi
   res.json(result)
 })
 
+router.get("/ping", (req, res) => {
+  res.json("pong!")
+})
+
 /* 谱面数据：/api/charts/:id/json|audio|bg */
 router.use("/charts", charts_router)
 /* 皮肤贴图：/api/skin/:name */
