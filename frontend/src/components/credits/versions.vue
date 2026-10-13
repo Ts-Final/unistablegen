@@ -49,6 +49,9 @@ import Build from '@components/credits/build.vue'
       <div>调整了谱面列表页面在后端断连时的表现行为。</div>
       <div>调整了settings的footer按钮。</div>
     </build>
+    <build build="7" y="2026" m="10" d="13" title="0.1.6">
+      <div>调整了hazard的层级。</div>
+    </build>
   </div>
 </template>
 
